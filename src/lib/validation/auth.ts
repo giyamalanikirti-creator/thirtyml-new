@@ -24,15 +24,11 @@ export const otpSchema = z
 
 export const signupDetailsSchema = z.object({
   fullName: z.string().trim().min(2, "Enter your name").max(80),
-  dateOfBirth: z
-    .string()
-    .refine((v) => !Number.isNaN(Date.parse(v)), "Enter your date of birth")
-    .refine((v) => {
-      const dob = new Date(v);
-      const age =
-        (Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
-      return age >= 18 && age < 100;
-    }, "You must be at least 18"),
+  dateOfBirth: z.iso.date("Enter a valid date of birth").refine((value) => {
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+    const [year, month, day] = today.split("-");
+    return value <= `${Number(year) - 18}-${month}-${day}`;
+  }, "You must be at least 18"),
   gender: z
     .enum(["woman", "man", "nonbinary", "prefer_not_to_say"])
     .optional(),

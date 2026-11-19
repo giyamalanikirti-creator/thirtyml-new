@@ -46,7 +46,7 @@ export default async function CheckoutPage() {
             initialTotals={totals}
             walletBalance={walletBalance}
             profile={{
-              name: profile?.full_name ?? "",
+              name: profile?.full_name ?? demo?.details?.fullName ?? "",
               phone: profile?.phone ?? (demo?.method === "phone" ? demo.contact : ""),
               email: profile?.email ?? (demo?.method === "email" ? demo.contact : ""),
             }}

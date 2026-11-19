@@ -107,6 +107,13 @@ export function CheckoutClient({
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <div className="space-y-8">
+        <div className="rounded-md border border-line bg-night-raised p-4 text-sm">
+          <p className="font-semibold">Bring valid photo ID</p>
+          <p className="mt-1 text-moon-dim">
+            Every guest will be asked for ID at the club entrance for every booking.
+            Make sure everyone in your group meets the minimum age shown below.
+          </p>
+        </div>
         <fieldset disabled={busy === "pay" || choosePayment} className="min-w-0 space-y-8">
           <legend className="sr-only">Order details</legend>
           <section>
@@ -121,7 +128,7 @@ export function CheckoutClient({
                     {line.productName} ×{line.quantity}
                     <span className="ml-2 text-moon-dim">
                       {line.clubName} ·{" "}
-                      {nightFmt.format(new Date(`${line.nightDate}T12:00:00`))}
+                      {nightFmt.format(new Date(`${line.nightDate}T12:00:00`))} · Ages {line.minAge}+
                     </span>
                   </span>
                   <span className="tnum font-medium">
@@ -137,8 +144,7 @@ export function CheckoutClient({
               2 · Lead guest
             </h2>
             <p className="mt-1 text-xs text-moon-dim">
-              The QR ticket and receipts go to these details. ID is checked at
-              the door.
+              The QR ticket and receipts go to these details.
             </p>
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <label className="block text-sm">

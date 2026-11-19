@@ -26,6 +26,7 @@ export interface CartLine {
   productType: string;
   clubId: string;
   clubName: string;
+  minAge: number;
   clubSlug: string;
   citySlug: string;
   nightDate: string;
@@ -162,6 +163,7 @@ async function demoCartView(): Promise<CartView> {
       productType: found.product.type,
       clubId: found.club.id,
       clubName: found.club.name,
+      minAge: Math.max(found.club.minAge, found.product.minAge ?? 0),
       clubSlug: found.club.slug,
       citySlug: found.club.citySlug,
       nightDate: line.nightDate,
@@ -326,8 +328,8 @@ async function dbCartView(): Promise<CartView> {
     .select(
       `id, product_id, table_id, night_date, quantity, price_when_added,
        price_change_acknowledged_at, saved_for_later,
-       products(id, name, type, max_per_order, club_id,
-                clubs(id, name, slug, cities(slug)))`
+       products(id, name, type, min_age, max_per_order, club_id,
+                clubs(id, name, slug, min_age, cities(slug)))`
     )
     .eq("cart_id", cartId)
     .order("created_at");
@@ -364,6 +366,7 @@ async function dbCartView(): Promise<CartView> {
       productType: item.products.type,
       clubId: item.products.clubs.id,
       clubName: item.products.clubs.name,
+      minAge: Math.max(item.products.clubs.min_age, item.products.min_age ?? 0),
       clubSlug: item.products.clubs.slug,
       citySlug: item.products.clubs.cities.slug,
       nightDate: item.night_date,

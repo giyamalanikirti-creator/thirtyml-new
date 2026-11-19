@@ -10,6 +10,7 @@ import {
   otpSchema,
   passwordSchema,
   phoneSchema,
+  signupDetailsSchema,
 } from "@/lib/validation/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,10 +21,13 @@ type Method = "phone" | "email" | "magic";
 export function AuthForm({
   mode,
   partner = false,
+  cities = [],
 }: {
   mode: Mode;
   partner?: boolean;
+  cities?: { slug: string; name: string }[];
 }) {
+  const collectDetails = mode === "signup" && !partner;
   const demo = !supabaseConfigured() && !partner;
   const router = useRouter();
   const params = useSearchParams();
@@ -35,6 +39,11 @@ export function AuthForm({
   const [method, setMethod] = React.useState<Method>(
     partner ? "email" : "phone"
   );
+  const [details, setDetails] = React.useState({
+    fullName: "",
+    dateOfBirth: "",
+    homeCity: "",
+  });
   const [phone, setPhone] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -54,10 +63,24 @@ export function AuthForm({
     );
   }
 
+  const signup = collectDetails ? signupDetailsSchema.safeParse(details) : null;
+  const profile = signup?.success ? signup.data : undefined;
+  const metadata = profile && {
+    full_name: profile.fullName,
+    date_of_birth: profile.dateOfBirth,
+    home_city: profile.homeCity,
+  };
+  const destination = profile && requestedPath !== next
+    ? `/clubs?city=${encodeURIComponent(profile.homeCity)}`
+    : next;
   const contact = { method, contact: method === "phone" ? phone : email };
   const usesCode = method === "phone" || demo;
 
   async function run(fn: () => Promise<string | null>) {
+    if (signup && !signup.success) {
+      setError(signup.error.issues[0].message);
+      return;
+    }
     setBusy(true);
     setError(null);
     if (!demo || !otpSent) setNotice(null);
@@ -83,6 +106,7 @@ export function AuthForm({
     if (!parsed.success) return parsed.error.issues[0].message;
     const { error } = await supabaseBrowser().auth.signInWithOtp({
       phone: parsed.data,
+      options: { data: metadata },
     });
     if (error) return error.message;
     setOtpSent(true);
@@ -92,9 +116,9 @@ export function AuthForm({
 
   async function verifyOtp() {
     if (demo) {
-      const result = await verifyDemoCode(contact, otp);
+      const result = await verifyDemoCode(contact, otp, profile);
       if ("error" in result) return result.error ?? null;
-      router.replace(next);
+      router.replace(destination);
       router.refresh();
       return null;
     }
@@ -108,7 +132,7 @@ export function AuthForm({
       type: "sms",
     });
     if (error) return error.message;
-    router.push(next);
+    router.push(destination);
     router.refresh();
     return null;
   }
@@ -124,7 +148,10 @@ export function AuthForm({
         ? await supabaseBrowser().auth.signUp({
             email: parsedEmail.data,
             password: parsedPassword.data,
-            options: { emailRedirectTo: `${location.origin}/auth/callback` },
+            options: {
+              data: metadata,
+              emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(destination)}`,
+            },
           })
         : await supabaseBrowser().auth.signInWithPassword({
             email: parsedEmail.data,
@@ -135,7 +162,7 @@ export function AuthForm({
       setNotice("Check your inbox to confirm your email.");
       return null;
     }
-    router.push(next);
+    router.push(destination);
     router.refresh();
     return null;
   }
@@ -145,7 +172,10 @@ export function AuthForm({
     if (!parsedEmail.success) return parsedEmail.error.issues[0].message;
     const { error } = await supabaseBrowser().auth.signInWithOtp({
       email: parsedEmail.data,
-      options: { emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
+      options: {
+        data: metadata,
+        emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(destination)}`,
+      },
     });
     if (error) return error.message;
     setNotice("Magic link sent — check your inbox.");
@@ -215,6 +245,33 @@ export function AuthForm({
           else run(magicLink);
         }}
       >
+        {collectDetails && (
+          <fieldset className="space-y-3" disabled={busy || otpSent}>
+            <legend className="mb-2 text-sm font-semibold">Your details</legend>
+            <label className="block text-sm">
+              <span className="mb-1 block text-moon-dim">Full name</span>
+              <Input required autoComplete="name" maxLength={80} value={details.fullName}
+                onChange={(e) => setDetails({ ...details, fullName: e.target.value })} />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-moon-dim">Date of birth</span>
+              <Input required type="date" autoComplete="bday" value={details.dateOfBirth}
+                onChange={(e) => setDetails({ ...details, dateOfBirth: e.target.value })} />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block text-moon-dim">Home city</span>
+              <select required autoComplete="address-level2"
+                className="h-10 w-full rounded-md border border-line bg-night-raised px-3 text-sm text-moon"
+                value={details.homeCity}
+                onChange={(e) => setDetails({ ...details, homeCity: e.target.value })}
+              >
+                <option value="">Select your city</option>
+                {cities.map(({ slug, name }) => <option key={slug} value={slug}>{name}</option>)}
+              </select>
+            </label>
+          </fieldset>
+        )}
+
         {method === "phone" && (
           <>
             <label className="block text-sm">
@@ -305,7 +362,7 @@ export function AuthForm({
         </button>
       )}
 
-      {!demo && (
+      {!demo && !collectDetails && (
         <>
           <div className="my-4 flex items-center gap-3 text-xs text-moon-dim">
             <span className="h-px flex-1 bg-line" /> or{" "}

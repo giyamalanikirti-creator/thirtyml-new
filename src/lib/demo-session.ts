@@ -3,7 +3,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
-import { emailSchema, phoneSchema } from "@/lib/validation/auth";
+import { emailSchema, phoneSchema, signupDetailsSchema } from "@/lib/validation/auth";
 
 const cookieName = "tml_demo_session";
 
@@ -14,21 +14,26 @@ export const demoContactSchema = z.discriminatedUnion("method", [
   z.object({ method: z.literal("email"), contact: emailSchema.max(254) }),
 ]);
 
-export type DemoContact = z.infer<typeof demoContactSchema>;
+const demoSessionSchema = z.intersection(
+  demoContactSchema,
+  z.object({ details: signupDetailsSchema.optional() })
+);
 
-export async function getDemoSession(): Promise<DemoContact | null> {
+type DemoSession = z.infer<typeof demoSessionSchema>;
+
+export async function getDemoSession(): Promise<DemoSession | null> {
   if (isSupabaseConfigured()) return null;
   const value = (await cookies()).get(cookieName)?.value;
   if (!value) return null;
   try {
-    const parsed = demoContactSchema.safeParse(JSON.parse(value));
+    const parsed = demoSessionSchema.safeParse(JSON.parse(value));
     return parsed.success ? parsed.data : null;
   } catch {
     return null;
   }
 }
 
-export async function setDemoSession(contact: DemoContact) {
+export async function setDemoSession(contact: DemoSession) {
   if (isSupabaseConfigured()) return;
   (await cookies()).set(cookieName, JSON.stringify(contact), {
     httpOnly: true,
