@@ -7,11 +7,14 @@ import { z } from "zod";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { emailSchema, passwordSchema } from "@/lib/validation/auth";
 import { nightSettingsSchema, shiftDate } from "./night";
+import { sampleClubCredentials } from "./sample-credentials";
 import { forecastNight, type NightObservation } from "./forecast";
 
 const accountKey = "tml_demo_club";
 const sessionKey = "tml_demo_club_session";
 const activityKey = "tml_demo_club_activity";
+const sampleSession = "sample-club";
+const sampleActivityKey = "tml_sample_club_activity";
 const cookieOptions = {
   httpOnly: true, sameSite: "lax" as const, path: "/", secure: process.env.NODE_ENV === "production",
   maxAge: 7 * 86400,
@@ -58,6 +61,10 @@ function startSession(store: Awaited<ReturnType<typeof cookies>>, account: Accou
 
 export async function loginDemoClub(email: string, password: string) {
   const store = await cookies();
+  if (email === sampleClubCredentials.email && password === sampleClubCredentials.password) {
+    store.set(sessionKey, sampleSession, { ...cookieOptions, maxAge: 86400 });
+    return true;
+  }
   const account = readCookie(store.get(accountKey)?.value, accountSchema);
   if (!account || account.email !== email) return false;
   const expected = Buffer.from(account.hash, "hex");
@@ -71,6 +78,10 @@ export async function requireDemoClub() {
   const store = await cookies();
   const account = readCookie(store.get(accountKey)?.value, accountSchema);
   const token = store.get(sessionKey)?.value;
+  if (token === sampleSession) {
+    const activity = readCookie(store.get(sampleActivityKey)?.value, activitySchema) ?? { settings: [], admitted: [] };
+    return { name: "ThirtyML Sample Club", city: "Mumbai", activity };
+  }
   if (!account || !token || token !== createHash("sha256").update(account.hash + account.salt).digest("hex")) {
     redirect("/partner/login");
   }
@@ -79,7 +90,9 @@ export async function requireDemoClub() {
 }
 
 export async function writeDemoActivity(activity: Activity) {
-  (await cookies()).set(activityKey, JSON.stringify(activity), cookieOptions);
+  const store = await cookies();
+  const key = store.get(sessionKey)?.value === sampleSession ? sampleActivityKey : activityKey;
+  store.set(key, JSON.stringify(activity), cookieOptions);
 }
 
 export async function logoutDemoClub() {

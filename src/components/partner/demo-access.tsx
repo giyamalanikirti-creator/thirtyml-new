@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { sampleClubCredentials } from "@/lib/partner/sample-credentials";
 import { demoClubAccess } from "@/app/partner/demo/actions";
 
 export function DemoClubAccess({ mode }: { mode: "signup" | "login" }) {
@@ -31,7 +32,18 @@ export function DemoClubAccess({ mode }: { mode: "signup" | "login" }) {
           }
         });
       }}>
-      <p className="text-sm text-moon-dim">Demo club accounts and changes are saved in this browser. Use sample contact details and a demo password.</p>
+      {signup ? (
+        <p className="text-sm text-moon-dim">Demo club accounts and changes are saved in this browser. Use sample contact details and a demo password.</p>
+      ) : (
+        <div className="space-y-2 rounded-md border border-line bg-night p-3 text-sm">
+          <p className="font-semibold">Sample club credentials</p>
+          <dl className="space-y-1">
+            <div><dt className="inline text-moon-dim">Email </dt><dd className="inline break-all font-mono">{sampleClubCredentials.email}</dd></div>
+            <div><dt className="inline text-moon-dim">Password </dt><dd className="inline break-all font-mono">{sampleClubCredentials.password}</dd></div>
+          </dl>
+          <p className="text-xs text-moon-dim">Sign in with these to try the sample dashboard.</p>
+        </div>
+      )}
       {signup && (
         <>
           <label className="grid gap-1 text-sm">Club name<Input name="name" required minLength={2} maxLength={80} /></label>

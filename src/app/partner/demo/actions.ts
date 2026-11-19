@@ -8,6 +8,7 @@ import {
   clubCredentials, clubRegistration, demoBookings, loginDemoClub,
   logoutDemoClub, registerDemoClub, requireDemoClub, writeDemoActivity,
 } from "@/lib/partner/demo";
+import { sampleClubCredentials } from "@/lib/partner/sample-credentials";
 import { nightSettingsSchema, validNight } from "@/lib/partner/night";
 
 export async function demoClubAccess(mode: "signup" | "login", input: unknown) {
@@ -15,6 +16,9 @@ export async function demoClubAccess(mode: "signup" | "login", input: unknown) {
   if (mode === "signup") {
     const parsed = clubRegistration.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0].message };
+    if (parsed.data.email === sampleClubCredentials.email && parsed.data.password === sampleClubCredentials.password) {
+      return { error: "These credentials belong to the sample club. Use them on Partner login." };
+    }
     if (!(await registerDemoClub(parsed.data))) return { error: "This browser already has a demo club. Sign in with its credentials." };
   } else {
     const parsed = clubCredentials.safeParse(input);
