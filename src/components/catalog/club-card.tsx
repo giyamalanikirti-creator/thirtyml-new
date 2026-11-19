@@ -26,7 +26,6 @@ export function ClubCard({ club }: { club: ClubSummary }) {
           slug={club.slug}
           name={club.name}
           imageUrl={club.imageUrl}
-          sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
         />
         {/* Dark gradient so overlaid chips always stay readable. */}
         <div

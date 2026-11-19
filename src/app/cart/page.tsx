@@ -11,9 +11,19 @@ export const dynamic = "force-dynamic";
 
 export default async function CartPage() {
   // Demo mode uses the client-side demo cart on /demo/checkout — hop there
-  // instead of redirecting to login for a DB cart that doesn't exist.
-  if (!isSupabaseConfigured()) redirect("/demo/checkout");
-  const view = await getCartView();
+  // instead of redirecting to login for a DB cart that doesn't exist. If
+  // Supabase is configured but the DB read fails (e.g. no service role on a
+  // public deployment), fall through to the same demo path so the user
+  // keeps moving instead of seeing the generic error page.
+  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    redirect("/demo/checkout");
+  }
+  let view;
+  try {
+    view = await getCartView();
+  } catch {
+    redirect("/demo/checkout");
+  }
   return (
     <>
       <Header />

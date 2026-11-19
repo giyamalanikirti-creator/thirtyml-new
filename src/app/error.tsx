@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import * as Sentry from "@sentry/nextjs";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 export default function ErrorBoundary({
   error,
@@ -22,11 +23,23 @@ export default function ErrorBoundary({
       </h1>
       <p className="mt-2 max-w-sm text-sm text-moon-dim">
         That wasn&apos;t supposed to happen. Your cart and bookings are safe —
-        try again.
+        try again, or head back home.
       </p>
-      <Button onClick={reset} className="mt-8">
-        Try again
-      </Button>
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <Button onClick={reset}>Try again</Button>
+        <Link
+          href="/demo/checkout"
+          className={buttonVariants({ variant: "ghost" })}
+        >
+          Go to checkout
+        </Link>
+        <Link href="/" className={buttonVariants({ variant: "ghost" })}>
+          Home
+        </Link>
+      </div>
+      {error?.digest && (
+        <p className="mt-6 text-[11px] text-moon-faint">ref {error.digest}</p>
+      )}
     </main>
   );
 }

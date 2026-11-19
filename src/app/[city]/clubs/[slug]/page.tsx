@@ -95,7 +95,7 @@ export default async function ClubPage({
             name={club.name}
             imageUrl={club.imageUrl}
             priority
-            sizes="(min-width: 1024px) 72rem, 100vw"
+            className="absolute inset-0 h-full w-full object-cover"
           />
           <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-night via-night/40 to-transparent" />
         </div>

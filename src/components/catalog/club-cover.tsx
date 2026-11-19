@@ -1,53 +1,62 @@
 /* eslint-disable @next/next/no-img-element */
-import Image from "next/image";
+"use client";
+
+import * as React from "react";
 
 /**
- * Cover artwork for a club. When imageUrl is a real photo, renders through
- * next/image. When it's one of our generated SVGs (or missing), falls
- * through to a plain <img> so we don't need dangerouslyAllowSVG and don't
- * pay the optimiser overhead on tiny deterministic art.
+ * Cover artwork for a club or event. Renders through a plain <img> so it can
+ * fall back to the deterministic /api/club-cover/<slug> SVG if the real
+ * photo ever fails (Unsplash 404, upstream outage, blocked network).
+ * Keeping this one component as the single cover renderer means every
+ * surface — card, hero, event — degrades the same way.
  */
 export function ClubCover({
   slug,
   name,
   imageUrl,
   priority = false,
-  sizes,
+  className,
 }: {
   slug: string;
   name: string;
   imageUrl: string | null | undefined;
   priority?: boolean;
-  sizes?: string;
+  /** Extra classes added to the <img>. Default fills the parent as cover. */
+  className?: string;
 }) {
-  const src = imageUrl || coverUrl(slug, name);
-  const isGenerated = src.startsWith("/api/club-cover/");
+  const fallback = coverUrl(slug, name);
+  const initial =
+    imageUrl && imageUrl.length > 0 ? imageUrl : fallback;
+  const [src, setSrc] = React.useState(initial);
+  const [seenInitial, setSeenInitial] = React.useState(initial);
 
-  if (isGenerated) {
-    return (
-      <img
-        src={src}
-        alt=""
-        aria-hidden
-        loading={priority ? "eager" : "lazy"}
-        className="absolute inset-0 h-full w-full object-cover"
-      />
-    );
+  // If the parent swaps `imageUrl` (route change, parent re-render), re-seed
+  // without an effect — the React-recommended pattern for state that
+  // depends on props.
+  if (seenInitial !== initial) {
+    setSeenInitial(initial);
+    setSrc(initial);
   }
 
   return (
-    <Image
+    <img
       src={src}
-      alt={name}
-      fill
-      priority={priority}
-      sizes={sizes}
-      className="object-cover"
+      alt=""
+      aria-hidden
+      loading={priority ? "eager" : "lazy"}
+      decoding={priority ? "sync" : "async"}
+      onError={() => {
+        if (src !== fallback) setSrc(fallback);
+      }}
+      className={
+        className ??
+        "absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+      }
     />
   );
 }
 
-/** URL for the generated cover — stable per slug. */
+/** URL for the generated SVG cover — stable per slug. */
 export function coverUrl(slug: string, name?: string): string {
   const base = `/api/club-cover/${encodeURIComponent(slug)}`;
   return name ? `${base}?name=${encodeURIComponent(name)}` : base;

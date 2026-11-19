@@ -1,12 +1,10 @@
-/* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { Header } from "@/components/shell/header";
 import { Footer } from "@/components/shell/footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { coverUrl } from "@/components/catalog/club-cover";
+import { ClubCover } from "@/components/catalog/club-cover";
 import { LivePricePanel } from "@/components/catalog/live-price-panel";
 import { ClubMapLazy } from "@/components/map/club-map-lazy";
 import { getEventDetail } from "@/lib/data/catalog";
@@ -103,26 +101,13 @@ export default async function EventPage({
         </nav>
 
         <div className="relative mt-4 h-56 overflow-hidden rounded-xl sm:h-80">
-          {(() => {
-            const src = event.posterPath || coverUrl(event.slug, event.name);
-            return src.startsWith("/api/club-cover/") ? (
-              <img
-                src={src}
-                alt=""
-                aria-hidden
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-            ) : (
-              <Image
-                src={src}
-                alt={event.name}
-                fill
-                priority
-                sizes="(min-width: 1024px) 72rem, 100vw"
-                className="object-cover"
-              />
-            );
-          })()}
+          <ClubCover
+            slug={event.slug}
+            name={event.name}
+            imageUrl={event.posterPath}
+            priority
+            className="absolute inset-0 h-full w-full object-cover"
+          />
           <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-night via-night/40 to-transparent" />
         </div>
 

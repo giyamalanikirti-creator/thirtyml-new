@@ -1,9 +1,7 @@
-/* eslint-disable @next/next/no-img-element */
-import Image from "next/image";
 import Link from "next/link";
 import { Calendar } from "lucide-react";
 import type { EventSummary } from "@/lib/data/types";
-import { coverUrl } from "./club-cover";
+import { ClubCover } from "./club-cover";
 import { formatPaise } from "@/lib/utils";
 
 const dateFmt = new Intl.DateTimeFormat("en-IN", {
@@ -26,7 +24,11 @@ export function EventCard({ event }: { event: EventSummary }) {
       className="card-lift group block overflow-hidden rounded-lg border border-line bg-night-raised"
     >
       <div className="relative aspect-[3/2] overflow-hidden">
-        {renderEventCover(event.posterPath, event.slug, event.name)}
+        <ClubCover
+          slug={event.slug}
+          name={event.name}
+          imageUrl={event.posterPath}
+        />
         <div
           aria-hidden
           className="absolute inset-0 bg-gradient-to-t from-night via-night/40 to-transparent"
@@ -56,30 +58,3 @@ export function EventCard({ event }: { event: EventSummary }) {
   );
 }
 
-function renderEventCover(
-  posterPath: string | null | undefined,
-  slug: string,
-  name: string
-) {
-  const src = posterPath && posterPath.length > 0 ? posterPath : coverUrl(slug, name);
-  if (src.startsWith("/api/club-cover/")) {
-    return (
-      <img
-        src={src}
-        alt=""
-        aria-hidden
-        loading="lazy"
-        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-      />
-    );
-  }
-  return (
-    <Image
-      src={src}
-      alt={name}
-      fill
-      sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-      className="object-cover transition-transform duration-500 group-hover:scale-105"
-    />
-  );
-}

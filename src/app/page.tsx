@@ -1,7 +1,6 @@
-/* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
-import Image from "next/image";
 import { cookies } from "next/headers";
+import { ClubCover } from "@/components/catalog/club-cover";
 import { ArrowRight, Zap, Lock, QrCode } from "lucide-react";
 import { Header } from "@/components/shell/header";
 import { Footer } from "@/components/shell/footer";
@@ -43,25 +42,15 @@ export default async function Home() {
       <main className="mx-auto w-full max-w-6xl flex-1 px-4">
         {/* HERO ---------------------------------------------------------- */}
         <section className="relative overflow-hidden rounded-xl border border-line bg-aubergine/40 pt-10 sm:pt-14">
-          {heroClub?.imageUrl && (
+          {heroClub && (
             <>
-              {heroClub.imageUrl.startsWith("/api/club-cover/") ? (
-                <img
-                  src={heroClub.imageUrl}
-                  alt=""
-                  aria-hidden
-                  className="absolute inset-0 -z-10 h-full w-full object-cover opacity-25"
-                />
-              ) : (
-                <Image
-                  src={heroClub.imageUrl}
-                  alt=""
-                  fill
-                  priority
-                  sizes="(min-width: 1024px) 72rem, 100vw"
-                  className="absolute inset-0 -z-10 object-cover opacity-25"
-                />
-              )}
+              <ClubCover
+                slug={heroClub.slug}
+                name={heroClub.name}
+                imageUrl={heroClub.imageUrl}
+                priority
+                className="absolute inset-0 -z-10 h-full w-full object-cover opacity-25"
+              />
               <div
                 aria-hidden
                 className="absolute inset-0 -z-10 bg-gradient-to-tr from-night via-night/70 to-transparent"

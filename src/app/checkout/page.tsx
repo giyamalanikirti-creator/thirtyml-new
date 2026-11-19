@@ -11,7 +11,9 @@ export const metadata: Metadata = { title: "Checkout" };
 export const dynamic = "force-dynamic";
 
 export default async function CheckoutPage() {
-  if (!isSupabaseConfigured()) redirect("/demo/checkout");
+  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    redirect("/demo/checkout");
+  }
   const { userId, profile } = await requireUser();
   const view = await getCartView();
   const active = view.lines.filter((l) => !l.savedForLater);

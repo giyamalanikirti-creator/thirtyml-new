@@ -21,12 +21,12 @@ export const demoCities: City[] = [
   { id: "c-agr", slug: "agra", name: "Agra", state: "Uttar Pradesh", lat: 27.1767, lng: 78.0081 },
 ];
 
-// Demo covers are generated locally by /api/club-cover/[slug] — no external
-// host, no API key. The second arg used to be an Unsplash width hint; it's
-// kept as a positional placeholder so existing seed rows don't have to
-// change shape, and quietly ignored.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const U = (..._unused: unknown[]) => "";
+// Hand-picked Unsplash nightclub / bar / lounge photos. All public under the
+// Unsplash licence. w=1200 keeps payloads modest; `auto=format` serves AVIF
+// or WebP where supported. If a photo ever stops resolving, ClubCover falls
+// back to the deterministic /api/club-cover/<slug> artwork.
+const U = (id: string, w = 1200) =>
+  `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=80`;
 
 interface DemoClubSeed {
   slug: string;
@@ -201,7 +201,7 @@ function toSummary(s: DemoClubSeed): ClubSummary {
     minPrice: Math.min(s.stag, s.couple, ...(s.ladies !== null ? [s.ladies] : [])),
     priceUpdatedAt: updatedAt,
     openTonight: ![1, 2].includes(new Date().getDay()),
-    imageUrl: `/api/club-cover/${encodeURIComponent(s.slug)}?name=${encodeURIComponent(s.name)}`,
+    imageUrl: s.image,
   };
 }
 
