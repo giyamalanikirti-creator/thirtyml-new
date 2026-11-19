@@ -314,3 +314,46 @@ begin
 end;
 $$;
 rollback;
+
+-- Partner approval and date-specific inventory operations.
+begin;
+do $$
+declare
+  c uuid := '30000000-0000-4000-8000-000000000001';
+  owner_id uuid := '10000000-0000-4000-8000-000000000002';
+  viewer uuid := '10000000-0000-4000-8000-000000000001';
+  d date := current_date + 45;
+  product uuid;
+  application uuid;
+  approved uuid;
+begin
+  select id into product from products where club_id = c and type = 'entry' and is_active limit 1;
+  begin
+    perform update_night_operations(c, d, true, 5, '{}', '{}', viewer);
+    raise exception 'unexpected permission';
+  exception when raise_exception then
+    if sqlerrm <> 'owner or manager required' then raise; end if;
+  end;
+  perform update_night_operations(c, d, true, 12, jsonb_build_object(product::text, 8), '{}', owner_id);
+  if available_quantity(product, d) <> 8 then raise exception 'capacity did not change'; end if;
+  perform update_night_operations(c, d, null, null, null, jsonb_build_object(product::text, 230000), owner_id);
+  if effective_price(product, d) <> 230000 or available_quantity(product, d) <> 8
+    or not exists (select 1 from night_operations where club_id = c and on_date = d and occupancy = 12)
+  then raise exception 'publishing a cover charge changed unrelated settings'; end if;
+  perform update_night_operations(c, d, false, 12, jsonb_build_object(product::text, 8), '{}', owner_id);
+  if available_quantity(product, d) <> 0 then raise exception 'closed night is bookable'; end if;
+  declare admin_id uuid;
+  begin
+    select id into admin_id from profiles where role = 'super_admin' limit 1;
+    insert into partner_applications(applicant_id, club_name, city, contact_name, contact_phone, contact_email)
+      values(viewer, 'New club verification', 'mumbai', 'Club contact', '+919876543210', 'club@example.com')
+      returning id into application;
+    approved := approve_partner_application(application, admin_id);
+    if approved <> approve_partner_application(application, admin_id)
+      or not exists (select 1 from club_members where club_id = approved and user_id = viewer and role = 'owner')
+      or not exists (select 1 from partner_applications where id = application and status = 'approved' and approved_club_id = approved)
+    then raise exception 'partner approval was not atomic or idempotent'; end if;
+  end;
+end;
+$$;
+rollback;

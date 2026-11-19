@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { supabaseServer, isSupabaseConfigured } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import { listMyMemberships } from "@/lib/partner/current";
 import { Header } from "@/components/shell/header";
@@ -12,7 +13,8 @@ export const dynamic = "force-dynamic";
 /** Root of the partner dashboard: sign in, then either bounce into a club or
  *  land here to pick one / apply. */
 export default async function PartnerLanding() {
-  await requireUser();
+  if (!isSupabaseConfigured()) redirect("/partner/demo/overview");
+  const session = await requireUser();
   const memberships = await listMyMemberships();
 
   if (memberships.length === 1) {
@@ -20,6 +22,23 @@ export default async function PartnerLanding() {
   }
 
   if (memberships.length === 0) {
+    const db = await supabaseServer();
+    const { data: application } = await db.from("partner_applications")
+      .select("club_name, status").eq("applicant_id", session.userId)
+      .order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (application && application.status !== "rejected") {
+      return (
+        <>
+          <Header />
+          <main className="mx-auto w-full max-w-xl flex-1 space-y-3 px-4 py-16">
+            <h1 className="font-display text-2xl font-semibold">{application.club_name}</h1>
+            <p className="text-moon-dim">Application status: {application.status.replace("_", " ")}</p>
+            {application.status === "pending" && <p>Your dashboard will open after ThirtyML approves your application.</p>}
+            {application.status === "needs_info" && <Link className="text-plum-bright underline" href="/partner/apply">Submit updated venue details</Link>}
+          </main>
+        </>
+      );
+    }
     return (
       <>
         <Header />

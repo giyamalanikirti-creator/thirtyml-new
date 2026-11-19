@@ -12,6 +12,7 @@ import { DateStrip } from "@/components/catalog/date-strip";
 import { LivePricePanel } from "@/components/catalog/live-price-panel";
 import { Sparkline } from "@/components/catalog/sparkline";
 import { EventCard } from "@/components/catalog/event-card";
+import { VenueIntent } from "@/components/catalog/venue-intent";
 import { ClubPhoto } from "@/components/catalog/club-photo";
 import { ClubMapLazy } from "@/components/map/club-map-lazy";
 import { getClubDetail, todayIst } from "@/lib/data/catalog";
@@ -76,6 +77,7 @@ export default async function ClubPage({
   return (
     <>
       <Header city={city} />
+      <VenueIntent clubId={club.id} date={selectedDate} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

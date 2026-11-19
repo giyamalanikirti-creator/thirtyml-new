@@ -15,10 +15,12 @@ export function clubGradient(slug: string): string {
 }
 
 /** BookMyShow-style card: photo on top, info below, price pill overlaid. */
-export function ClubCard({ club, wide = false }: { club: ClubSummary; wide?: boolean }) {
+export function ClubCard({ club, wide = false, availableLabel = "Open tonight", night }: {
+  club: ClubSummary; wide?: boolean; availableLabel?: string; night?: string;
+}) {
   return (
     <Link
-      href={`/${club.citySlug}/clubs/${club.slug}`}
+      href={`/${club.citySlug}/clubs/${club.slug}${night ? `?date=${encodeURIComponent(night)}` : ""}`}
       className="card-lift group block min-w-0 overflow-hidden rounded-lg border border-line bg-night-raised"
     >
       <div className={cn("relative aspect-[4/3] overflow-hidden", wide && "sm:aspect-video")}>
@@ -41,7 +43,7 @@ export function ClubCard({ club, wide = false }: { club: ClubSummary; wide?: boo
           {club.openTonight ? (
             <Badge variant="drop">
               <span className="live-dot inline-block h-1.5 w-1.5 rounded-full bg-drop" />
-              Open tonight
+              {availableLabel}
             </Badge>
           ) : (
             <Badge>Closed tonight</Badge>

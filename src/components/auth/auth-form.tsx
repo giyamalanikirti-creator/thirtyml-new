@@ -22,10 +22,12 @@ export function AuthForm({
   mode,
   partner = false,
   cities = [],
+  credentialsOnly = false,
 }: {
   mode: Mode;
   partner?: boolean;
   cities?: { slug: string; name: string }[];
+  credentialsOnly?: boolean;
 }) {
   const collectDetails = mode === "signup" && !partner;
   const demo = !supabaseConfigured() && !partner;
@@ -143,7 +145,7 @@ export function AuthForm({
     const parsedPassword = passwordSchema.safeParse(password);
     if (!parsedPassword.success) return parsedPassword.error.issues[0].message;
 
-    const { error } =
+    const { data, error } =
       mode === "signup"
         ? await supabaseBrowser().auth.signUp({
             email: parsedEmail.data,
@@ -158,7 +160,7 @@ export function AuthForm({
             password: parsedPassword.data,
           });
     if (error) return error.message;
-    if (mode === "signup") {
+    if (mode === "signup" && !data.session) {
       setNotice("Check your inbox to confirm your email.");
       return null;
     }
@@ -200,41 +202,43 @@ export function AuthForm({
           Demo mode. Use a sample phone number or email address. The code appears here in the app.
         </p>
       )}
-      <div
-        className={`mb-5 grid ${demo ? "grid-cols-2" : "grid-cols-3"} rounded-md border border-line p-1 text-sm`}
-        role="tablist"
-        aria-label="Sign-in method"
-      >
-        {(
-          [
-            ["phone", "Phone"],
-            ["email", "Email"],
-            ["magic", "Magic link"],
-          ] as const
-        ).filter(([value]) => !demo || value !== "magic").map(([value, label]) => (
-          <button
-            key={value}
-            role="tab"
-            disabled={busy}
-            aria-selected={method === value}
-            className={
-              "rounded-sm py-1.5 " +
-              (method === value
-                ? "bg-night-raised text-moon"
-                : "text-moon-dim hover:text-moon")
-            }
-            onClick={() => {
-              setMethod(value);
-              setOtpSent(false);
-              setOtp("");
-              setError(null);
-              setNotice(null);
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {!credentialsOnly && (
+        <div
+          className={`mb-5 grid ${demo ? "grid-cols-2" : "grid-cols-3"} rounded-md border border-line p-1 text-sm`}
+          role="tablist"
+          aria-label="Sign-in method"
+        >
+          {(
+            [
+              ["phone", "Phone"],
+              ["email", "Email"],
+              ["magic", "Magic link"],
+            ] as const
+          ).filter(([value]) => !demo || value !== "magic").map(([value, label]) => (
+            <button
+              key={value}
+              role="tab"
+              disabled={busy}
+              aria-selected={method === value}
+              className={
+                "rounded-sm py-1.5 " +
+                (method === value
+                  ? "bg-night-raised text-moon"
+                  : "text-moon-dim hover:text-moon")
+              }
+              onClick={() => {
+                setMethod(value);
+                setOtpSent(false);
+                setOtp("");
+                setError(null);
+                setNotice(null);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <form
         className="space-y-3"
@@ -362,7 +366,7 @@ export function AuthForm({
         </button>
       )}
 
-      {!demo && !collectDetails && (
+      {!demo && !collectDetails && !credentialsOnly && (
         <>
           <div className="my-4 flex items-center gap-3 text-xs text-moon-dim">
             <span className="h-px flex-1 bg-line" /> or{" "}
@@ -380,31 +384,36 @@ export function AuthForm({
         </>
       )}
 
-      <p className="mt-5 text-center text-sm text-moon-dim">
-        {mode === "login" ? (
-          <>
-            New here?{" "}
-            <Link className="text-dusk hover:underline" href={requestedPath === next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}>
-              Create an account
-            </Link>
-          </>
-        ) : (
-          <>
-            Already have an account?{" "}
-            <Link className="text-dusk hover:underline" href={requestedPath === next ? `/login?next=${encodeURIComponent(next)}` : "/login"}>
-              Sign in
-            </Link>
-          </>
-        )}
-        {!demo && method === "email" && mode === "login" && (
-          <>
-            {" · "}
-            <Link className="text-dusk hover:underline" href="/reset-password">
-              Forgot password?
-            </Link>
-          </>
-        )}
-      </p>
+      {partner && mode === "login" && method === "email" && (
+        <Link className="mt-5 block text-center text-sm text-dusk hover:underline" href="/reset-password">Forgot password?</Link>
+      )}
+      {!credentialsOnly && !partner && (
+        <p className="mt-5 text-center text-sm text-moon-dim">
+          {mode === "login" ? (
+            <>
+              New here?{" "}
+              <Link className="text-dusk hover:underline" href={partner ? "/partner/signup" : requestedPath === next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}>
+                Create an account
+              </Link>
+            </>
+          ) : (
+            <>
+              Already have an account?{" "}
+              <Link className="text-dusk hover:underline" href={partner ? "/partner/login" : requestedPath === next ? `/login?next=${encodeURIComponent(next)}` : "/login"}>
+                Sign in
+              </Link>
+            </>
+          )}
+          {!demo && method === "email" && mode === "login" && (
+            <>
+              {" · "}
+              <Link className="text-dusk hover:underline" href="/reset-password">
+                Forgot password?
+              </Link>
+            </>
+          )}
+        </p>
+      )}
     </div>
   );
 }

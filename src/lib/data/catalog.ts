@@ -462,3 +462,32 @@ export async function getEventDetail(
     tiers: tierInfos,
   };
 }
+
+/** Batch the active tickets and availability for public group matching. */
+export async function getMatchingEntryProducts(clubs: ClubSummary[], date: string) {
+  if (!isSupabaseConfigured()) {
+    return clubs.flatMap((club) => {
+      const detail = demoClubDetail(club.citySlug, club.slug);
+      return detail?.openTonight ? detail.entryProducts.map((product) => ({
+        clubId: club.id, name: product.name, minAge: product.minAge,
+        maxPerOrder: product.maxPerOrder, price: product.price, available: product.available,
+      })) : [];
+    });
+  }
+  if (!clubs.length) return [];
+  const db = await supabaseServer();
+  const { data, error } = await db.from("products").select("id, club_id, name, min_age, max_per_order")
+    .in("club_id", clubs.map(({ id }) => id)).eq("type", "entry").eq("is_active", true);
+  if (error) throw new Error(error.message);
+  if (!data?.length) return [];
+  const live = await db.rpc("catalog_prices", { p_product_ids: data.map(({ id }) => id), p_date: date });
+  if (live.error) throw new Error(live.error.message);
+  const priceById = new Map((live.data ?? []).map((row) => [row.product_id, row]));
+  return data.flatMap((product) => {
+    const current = priceById.get(product.id);
+    return current && current.available > 0 ? [{
+      clubId: product.club_id, name: product.name, minAge: product.min_age,
+      maxPerOrder: product.max_per_order, price: current.price, available: current.available,
+    }] : [];
+  });
+}

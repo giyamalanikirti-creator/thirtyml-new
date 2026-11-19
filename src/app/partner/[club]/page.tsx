@@ -1,3 +1,6 @@
+import Link from "next/link";
+import { weeklyEarnings } from "@/lib/partner/operations";
+import { EarningsCard } from "@/components/partner/earnings-card";
 import type { Metadata } from "next";
 import { requirePartnerClub } from "@/lib/partner/current";
 import { clubOverview } from "@/lib/partner/data";
@@ -26,18 +29,40 @@ export default async function ClubOverviewPage({
 }) {
   const { club } = await params;
   const ctx = await requirePartnerClub(club);
-  const overview = await clubOverview(ctx.club.id, todayIst());
+  const today = todayIst();
+  const canSeeEarnings = ["owner", "manager", "finance"].includes(ctx.membership.role);
+  const canEdit = ["owner", "manager"].includes(ctx.membership.role);
+  const [overview, earnings] = await Promise.all([
+    clubOverview(ctx.club.id, today),
+    canSeeEarnings ? weeklyEarnings(ctx.club.id, today) : null,
+  ]);
 
   return (
     <PartnerShell ctx={ctx} section="">
+      {earnings && (
+        <div className="mb-5"><EarningsCard earnings={earnings} href={ctx.membership.role !== "manager" ? `/partner/${club}/payouts` : undefined} /></div>
+      )}
+      {canEdit && (
+        <div className="mb-5 flex flex-wrap gap-3 text-sm">
+          {[
+            ["cover", "Update cover charges"],
+            ["availability", "Update nightly availability"],
+            ["forecast", "View demand forecast"],
+          ].map(([slug, label]) => (
+            <Link key={slug} href={`/partner/${club}/${slug}`} className="rounded border border-line bg-night-raised px-3 py-2 hover:border-plum-bright">{label}</Link>
+          ))}
+        </div>
+      )}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Bookings tonight" value={overview.bookings} />
+        <Stat label="Door occupancy" value={overview.occupancy} />
+        <Stat label="Online bookings" value={overview.bookingsOpen ? "Open" : "Paused"} />
         <Stat label="Guests expected" value={overview.guestsExpected} />
         <Stat
           label="Admitted"
           value={`${overview.guestsAdmitted} / ${overview.guestsExpected}`}
         />
-        <Stat label="Revenue tonight" value={formatPaise(overview.revenue)} />
+        {canSeeEarnings && <Stat label="Booked value tonight" value={formatPaise(overview.revenue)} />}
       </div>
 
       <Card className="mt-6">
@@ -45,7 +70,7 @@ export default async function ClubOverviewPage({
           <div className="border-b border-line px-5 py-3">
             <h2 className="font-display font-semibold">Live entry prices</h2>
             <p className="text-xs text-moon-dim">
-              Change any price in Pricing — customers see it within a second.
+              The prices and ticket limits shown are for tonight.
             </p>
           </div>
           <table className="w-full text-sm">

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Header } from "@/components/shell/header";
@@ -44,7 +45,10 @@ export default async function ClubsPage({
     <>
       <Header city={city} />
       <main className="w-full flex-1 px-4 py-8 sm:px-6 lg:px-8">
-        <h1 className="font-display text-2xl font-semibold">Explore clubs</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="font-display text-2xl font-semibold">Explore clubs</h1>
+          <Link className="text-sm text-plum-bright underline underline-offset-4" href={`/club-match?city=${city}`}>Find a club for your group</Link>
+        </div>
         <div className="mt-4">
           <Suspense>
             <FiltersBar cities={cities} />

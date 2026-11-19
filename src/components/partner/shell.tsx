@@ -24,6 +24,9 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { href: "", label: "Overview", icon: Home },
+  { href: "/cover", label: "Cover charges", icon: BadgeIndianRupee, roles: ["owner", "manager"] },
+  { href: "/availability", label: "Nightly availability", icon: CalendarClock, roles: ["owner", "manager"] },
+  { href: "/forecast", label: "Demand forecast", icon: BarChart3, roles: ["owner", "manager", "finance"] },
   { href: "/pricing", label: "Pricing", icon: Tag, roles: ["owner", "manager"] },
   { href: "/floor-plan", label: "Tables", icon: Sofa, roles: ["owner", "manager"] },
   { href: "/events", label: "Events", icon: CalendarClock, roles: ["owner", "manager"] },
@@ -48,6 +51,7 @@ export function PartnerShell({
   children: React.ReactNode;
   actions?: React.ReactNode;
 }) {
+  const visibleNav = NAV.filter((item) => !item.roles || item.roles.includes(ctx.membership.role));
   const base = `/partner/${ctx.club.slug}`;
   return (
     <div className="flex min-h-screen bg-night text-moon">
@@ -91,10 +95,7 @@ export function PartnerShell({
           </p>
         </div>
         <nav className="p-2">
-          {NAV.filter(
-            (item) =>
-              !item.roles || item.roles.includes(ctx.membership.role)
-          ).map((item) => {
+          {visibleNav.map((item) => {
             const active = section === item.href;
             return (
               <Link
@@ -129,6 +130,15 @@ export function PartnerShell({
             </Link>
           </div>
         </header>
+        <nav aria-label="Partner navigation" className="flex gap-2 overflow-x-auto border-b border-line px-4 py-2 lg:hidden">
+          {visibleNav.map((item) => (
+            <Link key={item.href} href={`${base}${item.href}`}
+              aria-current={section === item.href ? "page" : undefined}
+              className={cn("whitespace-nowrap rounded px-3 py-2 text-sm", section === item.href ? "bg-plum/20 text-moon" : "text-moon-dim")}>
+              {item.label}
+            </Link>
+          ))}
+        </nav>
         <main className="p-4 sm:p-6">{children}</main>
       </div>
     </div>

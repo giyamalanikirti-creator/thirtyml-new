@@ -10,7 +10,16 @@ export async function markApplication(
 ) {
   const { userId } = await requireAdmin();
   const admin = supabaseAdmin();
-  await admin.from("partner_applications").update({ status }).eq("id", id);
+  if (status === "approved") {
+    const result = await admin.rpc("approve_partner_application", { p_application: id, p_actor: userId });
+    if (result.error) throw new Error(result.error.message);
+    revalidatePath("/admin/applications");
+    revalidatePath("/partner");
+    return;
+  }
+  const { error } = await admin.from("partner_applications").update({ status })
+    .eq("id", id).is("approved_club_id", null);
+  if (error) throw new Error(error.message);
   await admin.from("audit_logs").insert({
     actor_id: userId,
     action: `application.${status}`,
