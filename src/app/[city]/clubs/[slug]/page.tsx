@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Star, MapPin, Globe, AtSign, Share2 } from "lucide-react";
@@ -13,7 +12,7 @@ import { DateStrip } from "@/components/catalog/date-strip";
 import { LivePricePanel } from "@/components/catalog/live-price-panel";
 import { Sparkline } from "@/components/catalog/sparkline";
 import { EventCard } from "@/components/catalog/event-card";
-import { ClubPlaceholder } from "@/components/catalog/club-placeholder";
+import { ClubCover } from "@/components/catalog/club-cover";
 import { ClubMapLazy } from "@/components/map/club-map-lazy";
 import { getClubDetail, todayIst } from "@/lib/data/catalog";
 
@@ -91,18 +90,13 @@ export default async function ClubPage({
         </nav>
 
         <div className="relative mt-4 h-56 overflow-hidden rounded-xl sm:h-72">
-          {club.imageUrl ? (
-            <Image
-              src={club.imageUrl}
-              alt={club.name}
-              fill
-              priority
-              sizes="(min-width: 1024px) 72rem, 100vw"
-              className="object-cover"
-            />
-          ) : (
-            <ClubPlaceholder name={club.name} slug={club.slug} size="hero" />
-          )}
+          <ClubCover
+            slug={club.slug}
+            name={club.name}
+            imageUrl={club.imageUrl}
+            priority
+            sizes="(min-width: 1024px) 72rem, 100vw"
+          />
           <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-night via-night/40 to-transparent" />
         </div>
 

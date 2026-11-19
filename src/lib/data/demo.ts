@@ -21,10 +21,12 @@ export const demoCities: City[] = [
   { id: "c-agr", slug: "agra", name: "Agra", state: "Uttar Pradesh", lat: 27.1767, lng: 78.0081 },
 ];
 
-// Hand-picked Unsplash nightclub / bar / lounge photos. All public under the
-// Unsplash licence. w=1200 keeps payloads modest; `auto=format` serves AVIF.
-const U = (id: string, w = 1200) =>
-  `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=80`;
+// Demo covers are generated locally by /api/club-cover/[slug] — no external
+// host, no API key. The second arg used to be an Unsplash width hint; it's
+// kept as a positional placeholder so existing seed rows don't have to
+// change shape, and quietly ignored.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const U = (..._unused: unknown[]) => "";
 
 interface DemoClubSeed {
   slug: string;
@@ -199,7 +201,7 @@ function toSummary(s: DemoClubSeed): ClubSummary {
     minPrice: Math.min(s.stag, s.couple, ...(s.ladies !== null ? [s.ladies] : [])),
     priceUpdatedAt: updatedAt,
     openTonight: ![1, 2].includes(new Date().getDay()),
-    imageUrl: s.image,
+    imageUrl: `/api/club-cover/${encodeURIComponent(s.slug)}?name=${encodeURIComponent(s.name)}`,
   };
 }
 
@@ -256,12 +258,12 @@ const inDays = (n: number, h: number) =>
   new Date(new Date().setHours(h, 0, 0, 0) + n * day).toISOString();
 
 export const demoEvents: EventSummary[] = [
-  { id: "demo-e1", slug: "warehouse-techno-night", name: "Warehouse Techno Night", clubSlug: "kitty-su", clubName: "Kitty Su", citySlug: "mumbai", startsAt: inDays(9, 21), posterPath: U("photo-1574434532902-4c3b61bb0bf4"), minPrice: 99900 },
-  { id: "demo-e2", slug: "hip-hop-cypher", name: "Hip-Hop Cypher", clubSlug: "antisocial", clubName: "AntiSocial", citySlug: "mumbai", startsAt: inDays(5, 21), posterPath: U("photo-1511671782779-c97d3d27a1d4"), minPrice: 79900 },
-  { id: "demo-e3", slug: "bass-drop-festival", name: "Bass Drop Festival", clubSlug: "area-51", clubName: "Area 51", citySlug: "pune", startsAt: inDays(11, 20), posterPath: U("photo-1459749411175-04bf5292ceea"), minPrice: 129900 },
-  { id: "demo-e4", slug: "bollywood-blockbuster-night", name: "Bollywood Blockbuster Night", clubSlug: "mansion-tapas-club", clubName: "Mansion Tapas & Club", citySlug: "agra", startsAt: inDays(7, 21), posterPath: U("photo-1517457373958-b7bdd4587205"), minPrice: 49900 },
-  { id: "demo-e5", slug: "sunset-sessions", name: "Sunset Sessions · Rooftop", clubSlug: "aer", clubName: "AER", citySlug: "mumbai", startsAt: inDays(3, 18), posterPath: U("photo-1470225620780-dba8ba36b745"), minPrice: 149900 },
-  { id: "demo-e6", slug: "live-indie-friday", name: "Live Indie Friday", clubSlug: "high-spirits", clubName: "High Spirits", citySlug: "pune", startsAt: inDays(4, 20), posterPath: U("photo-1501386761578-eac5c94b800a"), minPrice: 49900 },
+  { id: "demo-e1", slug: "warehouse-techno-night", name: "Warehouse Techno Night", clubSlug: "kitty-su", clubName: "Kitty Su", citySlug: "mumbai", startsAt: inDays(9, 21), posterPath: "/api/club-cover/warehouse-techno-night?name=Warehouse%20Techno%20Night", minPrice: 99900 },
+  { id: "demo-e2", slug: "hip-hop-cypher", name: "Hip-Hop Cypher", clubSlug: "antisocial", clubName: "AntiSocial", citySlug: "mumbai", startsAt: inDays(5, 21), posterPath: "/api/club-cover/hip-hop-cypher?name=Hip-Hop%20Cypher", minPrice: 79900 },
+  { id: "demo-e3", slug: "bass-drop-festival", name: "Bass Drop Festival", clubSlug: "area-51", clubName: "Area 51", citySlug: "pune", startsAt: inDays(11, 20), posterPath: "/api/club-cover/bass-drop-festival?name=Bass%20Drop%20Festival", minPrice: 129900 },
+  { id: "demo-e4", slug: "bollywood-blockbuster-night", name: "Bollywood Blockbuster Night", clubSlug: "mansion-tapas-club", clubName: "Mansion Tapas & Club", citySlug: "agra", startsAt: inDays(7, 21), posterPath: "/api/club-cover/bollywood-blockbuster-night?name=Bollywood%20Blockbuster%20Night", minPrice: 49900 },
+  { id: "demo-e5", slug: "sunset-sessions", name: "Sunset Sessions · Rooftop", clubSlug: "aer", clubName: "AER", citySlug: "mumbai", startsAt: inDays(3, 18), posterPath: "/api/club-cover/sunset-sessions?name=Sunset%20Sessions%20%C2%B7%20Rooftop", minPrice: 149900 },
+  { id: "demo-e6", slug: "live-indie-friday", name: "Live Indie Friday", clubSlug: "high-spirits", clubName: "High Spirits", citySlug: "pune", startsAt: inDays(4, 20), posterPath: "/api/club-cover/live-indie-friday?name=Live%20Indie%20Friday", minPrice: 49900 },
 ];
 
 export function demoEventDetail(citySlug: string, slug: string): EventDetail | null {

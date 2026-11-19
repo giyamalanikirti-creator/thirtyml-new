@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import Image from "next/image";
 import { cookies } from "next/headers";
@@ -44,14 +45,23 @@ export default async function Home() {
         <section className="relative overflow-hidden rounded-xl border border-line bg-aubergine/40 pt-10 sm:pt-14">
           {heroClub?.imageUrl && (
             <>
-              <Image
-                src={heroClub.imageUrl}
-                alt=""
-                fill
-                priority
-                sizes="(min-width: 1024px) 72rem, 100vw"
-                className="absolute inset-0 -z-10 object-cover opacity-25"
-              />
+              {heroClub.imageUrl.startsWith("/api/club-cover/") ? (
+                <img
+                  src={heroClub.imageUrl}
+                  alt=""
+                  aria-hidden
+                  className="absolute inset-0 -z-10 h-full w-full object-cover opacity-25"
+                />
+              ) : (
+                <Image
+                  src={heroClub.imageUrl}
+                  alt=""
+                  fill
+                  priority
+                  sizes="(min-width: 1024px) 72rem, 100vw"
+                  className="absolute inset-0 -z-10 object-cover opacity-25"
+                />
+              )}
               <div
                 aria-hidden
                 className="absolute inset-0 -z-10 bg-gradient-to-tr from-night via-night/70 to-transparent"
