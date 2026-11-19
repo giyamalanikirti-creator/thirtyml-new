@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Star, MapPin } from "lucide-react";
 import type { ClubSummary } from "@/lib/data/types";
 import { Badge } from "@/components/ui/badge";
-import { formatPaise } from "@/lib/utils";
+import { cn, formatPaise } from "@/lib/utils";
 
 /** Deterministic night-gradient placeholder for clubs without a photo. */
 export function clubGradient(slug: string): string {
@@ -15,17 +15,17 @@ export function clubGradient(slug: string): string {
 }
 
 /** BookMyShow-style card: photo on top, info below, price pill overlaid. */
-export function ClubCard({ club }: { club: ClubSummary }) {
+export function ClubCard({ club, wide = false }: { club: ClubSummary; wide?: boolean }) {
   return (
     <Link
       href={`/${club.citySlug}/clubs/${club.slug}`}
-      className="card-lift group block overflow-hidden rounded-lg border border-line bg-night-raised"
+      className="card-lift group block min-w-0 overflow-hidden rounded-lg border border-line bg-night-raised"
     >
-      <div className="relative aspect-[4/3] overflow-hidden">
+      <div className={cn("relative aspect-[4/3] overflow-hidden", wide && "sm:aspect-video")}>
         <ClubPhoto
           src={club.imageUrl}
           slug={club.slug}
-          sizes="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw"
+          sizes={wide ? "50vw" : "(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw"}
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
         {/* Dark gradient so overlaid chips always stay readable. */}
@@ -34,7 +34,10 @@ export function ClubCard({ club }: { club: ClubSummary }) {
           className="absolute inset-0 bg-gradient-to-t from-night via-night/30 to-transparent"
         />
 
-        <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
+        <div className={cn(
+          "absolute inset-x-3 top-3 flex items-start justify-between gap-2",
+          wide && "max-sm:inset-x-1.5 max-sm:top-1.5 max-sm:gap-1 max-sm:[&>*]:px-1 max-sm:[&>*]:text-[10px]"
+        )}>
           {club.openTonight ? (
             <Badge variant="drop">
               <span className="live-dot inline-block h-1.5 w-1.5 rounded-full bg-drop" />
@@ -52,7 +55,7 @@ export function ClubCard({ club }: { club: ClubSummary }) {
         </div>
 
         {club.minPrice !== null && (
-          <div className="absolute bottom-3 left-3">
+          <div className={cn("absolute bottom-3 left-3", wide && "max-sm:bottom-1.5 max-sm:left-1.5")}>
             <div className="rounded-md bg-plum px-3 py-1 shadow-lg shadow-plum/40">
               <p className="text-[10px] font-medium uppercase tracking-widest text-moon">
                 Entry from
@@ -65,7 +68,7 @@ export function ClubCard({ club }: { club: ClubSummary }) {
         )}
       </div>
 
-      <div className="p-4">
+      <div className={cn("p-4", wide && "max-sm:p-2.5")}>
         <h3 className="font-display text-lg font-semibold leading-tight text-moon group-hover:text-plum-bright">
           {club.name}
         </h3>
