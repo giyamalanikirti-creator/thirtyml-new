@@ -4,12 +4,14 @@ import { Header } from "@/components/shell/header";
 import { requireUser } from "@/lib/auth";
 import { getCartView } from "@/lib/cart";
 import { getWalletBalance, previewTotals } from "@/lib/orders";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { CheckoutClient } from "./checkout-client";
 
 export const metadata: Metadata = { title: "Checkout" };
 export const dynamic = "force-dynamic";
 
 export default async function CheckoutPage() {
+  if (!isSupabaseConfigured()) redirect("/demo/checkout");
   const { userId, profile } = await requireUser();
   const view = await getCartView();
   const active = view.lines.filter((l) => !l.savedForLater);

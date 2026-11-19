@@ -13,7 +13,7 @@ import { DateStrip } from "@/components/catalog/date-strip";
 import { LivePricePanel } from "@/components/catalog/live-price-panel";
 import { Sparkline } from "@/components/catalog/sparkline";
 import { EventCard } from "@/components/catalog/event-card";
-import { clubGradient } from "@/components/catalog/club-card";
+import { ClubPlaceholder } from "@/components/catalog/club-placeholder";
 import { ClubMapLazy } from "@/components/map/club-map-lazy";
 import { getClubDetail, todayIst } from "@/lib/data/catalog";
 
@@ -101,7 +101,7 @@ export default async function ClubPage({
               className="object-cover"
             />
           ) : (
-            <div aria-hidden className="absolute inset-0" style={{ background: clubGradient(club.slug) }} />
+            <ClubPlaceholder name={club.name} slug={club.slug} size="hero" />
           )}
           <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-night via-night/40 to-transparent" />
         </div>

@@ -4,6 +4,7 @@ import { Star, MapPin } from "lucide-react";
 import type { ClubSummary } from "@/lib/data/types";
 import { Badge } from "@/components/ui/badge";
 import { formatPaise } from "@/lib/utils";
+import { ClubPlaceholder } from "./club-placeholder";
 
 /** Deterministic night-gradient placeholder for clubs without a photo. */
 export function clubGradient(slug: string): string {
@@ -31,11 +32,7 @@ export function ClubCard({ club }: { club: ClubSummary }) {
             className="object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-          <div
-            aria-hidden
-            className="absolute inset-0"
-            style={{ background: clubGradient(club.slug) }}
-          />
+          <ClubPlaceholder name={club.name} slug={club.slug} size="card" />
         )}
         {/* Dark gradient so overlaid chips always stay readable. */}
         <div

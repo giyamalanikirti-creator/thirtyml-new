@@ -8,6 +8,8 @@ import { PriceTag } from "@/components/price/price-tag";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatPaise } from "@/lib/utils";
+import { supabaseConfigured } from "@/lib/supabase/client";
+import { addItem as addDemoItem } from "@/lib/demo-cart";
 
 /**
  * The club page's sticky panel: live entry prices with quantity steppers.
@@ -59,13 +61,32 @@ export function LivePricePanel({
     setBusy(true);
     setError(null);
     try {
-      const items = products
-        .filter((p) => (qty[p.id] ?? 0) > 0)
-        .map((p) => ({
-          productId: p.id,
-          nightDate: date,
-          quantity: qty[p.id],
-        }));
+      const picked = products.filter((p) => (qty[p.id] ?? 0) > 0);
+
+      // Demo mode: no Supabase, no server cart — stash in the localStorage
+      // cart and jump straight to the demo checkout.
+      if (!supabaseConfigured()) {
+        for (const p of picked) {
+          const q = qty[p.id] ?? 0;
+          const livePrice = live[p.id]?.price ?? p.price;
+          for (let n = 0; n < q; n++) {
+            addDemoItem({
+              id: `${p.id}:${date}`,
+              title: p.name,
+              subtitle: `Night of ${date}`,
+              pricePaise: livePrice,
+            });
+          }
+        }
+        router.push("/demo/checkout");
+        return;
+      }
+
+      const items = picked.map((p) => ({
+        productId: p.id,
+        nightDate: date,
+        quantity: qty[p.id],
+      }));
       const res = await fetch("/api/cart", {
         method: "POST",
         headers: { "content-type": "application/json" },
