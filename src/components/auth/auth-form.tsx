@@ -12,6 +12,7 @@ import {
 } from "@/lib/validation/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MockAuthForm } from "@/components/auth/mock-auth-form";
 
 type Mode = "login" | "signup";
 type Method = "phone" | "email" | "magic";
@@ -40,13 +41,18 @@ export function AuthForm({
   const [notice, setNotice] = React.useState<string | null>(null);
 
   if (!supabaseConfigured()) {
-    return (
-      <p className="rounded-md border border-line bg-night-raised p-4 text-sm text-moon-dim">
-        Sign-in isn&apos;t configured in this environment yet (Supabase keys
-        missing). Add <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
-        <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to enable it.
-      </p>
-    );
+    // Partner sign-in is email+password only, which the dummy flow doesn't
+    // emulate — keep the explanatory notice there.
+    if (partner) {
+      return (
+        <p className="rounded-md border border-line bg-night-raised p-4 text-sm text-moon-dim">
+          Partner sign-in isn&apos;t configured in this environment yet
+          (Supabase keys missing). Add <code>NEXT_PUBLIC_SUPABASE_URL</code>{" "}
+          and <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to enable it.
+        </p>
+      );
+    }
+    return <MockAuthForm mode={mode} />;
   }
 
   const supabase = supabaseBrowser();
