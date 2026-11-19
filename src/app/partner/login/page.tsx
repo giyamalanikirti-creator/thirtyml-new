@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { DemoClubAccess } from "@/components/partner/demo-access";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { AuthForm } from "@/components/auth/auth-form";
 
 export const metadata: Metadata = { title: "Partner login" };
@@ -20,13 +22,14 @@ export default function PartnerLoginPage() {
       <h1 className="mb-6 font-display text-xl font-semibold">
         Sign in to your club
       </h1>
-      <Suspense>
-        <AuthForm mode="login" partner />
-      </Suspense>
+      {isSupabaseConfigured()
+        ? <Suspense><AuthForm mode="login" partner /></Suspense>
+        : <DemoClubAccess mode="login" />}
+
       <p className="mt-6 text-sm text-moon-dim">
         Not on ThirtyML yet?{" "}
-        <Link href="/partner/apply" className="text-dusk hover:underline">
-          Apply to list your club
+        <Link href="/partner/signup" className="text-dusk hover:underline">
+          Create a club account
         </Link>
       </p>
     </main>

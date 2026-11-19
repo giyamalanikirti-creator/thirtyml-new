@@ -75,7 +75,7 @@ export function LivePricePanel({
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? "Couldn't add to cart");
       }
-      router.push("/cart");
+      router.push("/checkout");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't add to cart");
     } finally {

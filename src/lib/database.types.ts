@@ -1302,6 +1302,18 @@ export type Database = {
           },
         ]
       }
+      night_operations: {
+        Row: { club_id: string; on_date: string; occupancy: number; capacity: Json }
+        Insert: { club_id: string; on_date: string; occupancy?: number; capacity?: Json }
+        Update: { occupancy?: number; capacity?: Json }
+        Relationships: []
+      }
+      venue_intent: {
+        Row: { club_id: string; on_date: string; visit_key: string; user_id: string | null; viewed_at: string }
+        Insert: { club_id: string; on_date: string; visit_key: string; user_id?: string | null; viewed_at?: string }
+        Update: { user_id?: string | null }
+        Relationships: []
+      }
       nights: {
         Row: {
           club_id: string
@@ -1500,6 +1512,7 @@ export type Database = {
           lead_guest_email: string | null
           lead_guest_name: string | null
           lead_guest_phone: string | null
+          payment_method: string
           status: string
           subtotal: number
           tax: number
@@ -1519,6 +1532,7 @@ export type Database = {
           lead_guest_email?: string | null
           lead_guest_name?: string | null
           lead_guest_phone?: string | null
+          payment_method?: string
           status?: string
           subtotal: number
           tax?: number
@@ -1538,6 +1552,7 @@ export type Database = {
           lead_guest_email?: string | null
           lead_guest_name?: string | null
           lead_guest_phone?: string | null
+          payment_method?: string
           status?: string
           subtotal?: number
           tax?: number
@@ -1560,6 +1575,7 @@ export type Database = {
         Row: {
           admin_note: string | null
           applicant_id: string | null
+          approved_club_id: string | null
           city: string
           club_name: string
           contact_email: string
@@ -1574,6 +1590,7 @@ export type Database = {
         Insert: {
           admin_note?: string | null
           applicant_id?: string | null
+          approved_club_id?: string | null
           city: string
           club_name: string
           contact_email: string
@@ -1588,6 +1605,7 @@ export type Database = {
         Update: {
           admin_note?: string | null
           applicant_id?: string | null
+          approved_club_id?: string | null
           city?: string
           club_name?: string
           contact_email?: string
@@ -2675,6 +2693,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_partner_application: { Args: { p_application: string; p_actor: string }; Returns: string }
+      update_night_operations: {
+        Args: {
+          p_club_id: string
+          p_date: string
+          p_open: boolean | null
+          p_occupancy: number | null
+          p_capacity: Json
+          p_price: Json
+          p_actor: string
+        }
+        Returns: undefined
+      }
+
+      confirm_venue_order: {
+        Args: {
+          p_order_id: string
+          p_user_id: string
+          p_cart_lines: Json
+          p_site_url: string
+        }
+        Returns: undefined
+      }
       apply_due_price_rules: {
         Args: Record<PropertyKey, never>
         Returns: number

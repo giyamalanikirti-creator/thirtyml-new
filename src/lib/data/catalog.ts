@@ -26,6 +26,24 @@ import {
  * All queries run under RLS as the anonymous/current user.
  */
 
+function clubPhotoUrl(
+  photos: { storage_path: string; sort_order: number }[],
+  supabase: Awaited<ReturnType<typeof supabaseServer>>
+): string | null {
+  const photo = [...photos].sort((a, b) => a.sort_order - b.sort_order)[0]?.storage_path;
+  if (!photo) return null;
+  if (photo.startsWith("https://")) {
+    const url = URL.parse(photo);
+    if (!url) return null;
+    const storageUrl = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!);
+    return url.hostname === "images.unsplash.com" ||
+      (url.origin === storageUrl.origin && url.pathname.startsWith("/storage/v1/"))
+      ? url.href
+      : null;
+  }
+  return supabase.storage.from("club-photos").getPublicUrl(photo).data.publicUrl;
+}
+
 export function todayIst(): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Kolkata",
@@ -96,7 +114,7 @@ export async function listClubs(filters: ClubFilters): Promise<ClubSummary[]> {
     .from("clubs")
     .select(
       `id, slug, name, min_age, is_claimed, lat, lng, avg_rating, rating_count,
-       cities!inner(slug), areas(name), club_genres(genres(name))`
+       cities!inner(slug), areas(name), club_genres(genres(name)), club_photos(storage_path, sort_order)`
     )
     .eq("status", "approved")
     .eq("cities.slug", filters.city);
@@ -127,7 +145,7 @@ export async function listClubs(filters: ClubFilters): Promise<ClubSummary[]> {
       minPrice: b?.minPrice ?? null,
       priceUpdatedAt: b?.priceUpdatedAt ?? null,
       openTonight: b?.isOpen ?? true,
-      imageUrl: null,
+      imageUrl: clubPhotoUrl(c.club_photos ?? [], supabase),
     };
   });
 
@@ -181,7 +199,7 @@ export async function getClubDetail(
        rating_count,
        cities!inner(slug), areas(name),
        club_genres(genres(name)), club_amenities(amenities(name)),
-       club_hours(day_of_week, opens_at, closes_at, is_closed)`
+       club_hours(day_of_week, opens_at, closes_at, is_closed), club_photos(storage_path, sort_order)`
     )
     .eq("status", "approved")
     .eq("cities.slug", citySlug)
@@ -284,7 +302,7 @@ export async function getClubDetail(
       : null,
     priceUpdatedAt: entryProducts[0]?.priceUpdatedAt ?? null,
     openTonight: night?.is_open ?? true,
-    imageUrl: null,
+    imageUrl: clubPhotoUrl(c.club_photos ?? [], supabase),
     description: c.description,
     address: c.address,
     websiteUrl: c.website_url,
@@ -443,4 +461,33 @@ export async function getEventDetail(
     lng: e.clubs.lng,
     tiers: tierInfos,
   };
+}
+
+/** Batch the active tickets and availability for public group matching. */
+export async function getMatchingEntryProducts(clubs: ClubSummary[], date: string) {
+  if (!isSupabaseConfigured()) {
+    return clubs.flatMap((club) => {
+      const detail = demoClubDetail(club.citySlug, club.slug);
+      return detail?.openTonight ? detail.entryProducts.map((product) => ({
+        clubId: club.id, name: product.name, minAge: product.minAge,
+        maxPerOrder: product.maxPerOrder, price: product.price, available: product.available,
+      })) : [];
+    });
+  }
+  if (!clubs.length) return [];
+  const db = await supabaseServer();
+  const { data, error } = await db.from("products").select("id, club_id, name, min_age, max_per_order")
+    .in("club_id", clubs.map(({ id }) => id)).eq("type", "entry").eq("is_active", true);
+  if (error) throw new Error(error.message);
+  if (!data?.length) return [];
+  const live = await db.rpc("catalog_prices", { p_product_ids: data.map(({ id }) => id), p_date: date });
+  if (live.error) throw new Error(live.error.message);
+  const priceById = new Map((live.data ?? []).map((row) => [row.product_id, row]));
+  return data.flatMap((product) => {
+    const current = priceById.get(product.id);
+    return current && current.available > 0 ? [{
+      clubId: product.club_id, name: product.name, minAge: product.min_age,
+      maxPerOrder: product.max_per_order, price: current.price, available: current.available,
+    }] : [];
+  });
 }

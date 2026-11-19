@@ -1,6 +1,9 @@
 "use server";
 
+import { after } from "next/server";
+import { processNotificationOutbox } from "@/lib/notifications";
 import { z } from "zod";
+import { getDemoSession } from "@/lib/demo-session";
 import { requireUser } from "@/lib/auth";
 import { getCartView } from "@/lib/cart";
 import { createOrderFromCart, previewTotals } from "@/lib/orders";
@@ -11,9 +14,9 @@ export async function checkCoupon(
   code: string,
   useWallet: boolean
 ): Promise<{ totals: Totals; couponError?: string }> {
-  const session = await requireUser();
+  const session = await getDemoSession() ? null : await requireUser();
   const view = await getCartView();
-  return previewTotals(view, code || null, useWallet, session.userId);
+  return previewTotals(view, code || null, Boolean(session && useWallet), session?.userId ?? null);
 }
 
 const guestSchema = z.object({
@@ -22,6 +25,7 @@ const guestSchema = z.object({
   email: emailSchema,
   couponCode: z.string().trim().max(40).optional(),
   useWallet: z.boolean().optional(),
+  paymentMethod: z.enum(["online", "venue"]),
   agreed: z.literal(true, {
     message: "Please accept the terms and refund policy",
   }),
@@ -30,6 +34,9 @@ const guestSchema = z.object({
 export async function submitCheckout(input: unknown): Promise<
   { ok: true; orderId: string } | { ok: false; error: string }
 > {
+  if (await getDemoSession()) {
+    return { ok: false, error: "Demo checkout can review tickets. Live reservations require a configured store." };
+  }
   const session = await requireUser();
   const parsed = guestSchema.safeParse(input);
   if (!parsed.success) {
@@ -45,7 +52,13 @@ export async function submitCheckout(input: unknown): Promise<
     },
     couponCode: parsed.data.couponCode || null,
     useWallet: Boolean(parsed.data.useWallet),
+    paymentMethod: parsed.data.paymentMethod,
   });
   if (!result.ok) return result;
+  if (parsed.data.paymentMethod === "venue" && process.env.RESEND_API_KEY) {
+    after(async () => {
+      await processNotificationOutbox(1, result.orderId);
+    });
+  }
   return { ok: true, orderId: result.orderId };
 }

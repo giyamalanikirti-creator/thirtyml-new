@@ -21,10 +21,12 @@ const CART_COOKIE = "tml_cart";
 export interface CartLine {
   id: string; // cart_items id, or cookie line key
   productId: string;
+  tableId?: string;
   productName: string;
   productType: string;
   clubId: string;
   clubName: string;
+  minAge: number;
   clubSlug: string;
   citySlug: string;
   nightDate: string;
@@ -161,6 +163,7 @@ async function demoCartView(): Promise<CartView> {
       productType: found.product.type,
       clubId: found.club.id,
       clubName: found.club.name,
+      minAge: Math.max(found.club.minAge, found.product.minAge ?? 0),
       clubSlug: found.club.slug,
       citySlug: found.club.citySlug,
       nightDate: line.nightDate,
@@ -212,13 +215,12 @@ async function resolveCartId(create: boolean): Promise<string | null> {
         .is("user_id", null)
         .maybeSingle();
       if (anonCart) {
-        await admin
+        const { error } = await admin
           .from("cart_items")
           .update({ cart_id: cartId })
           .eq("cart_id", anonCart.id);
-        await admin.from("carts").delete().eq("id", anonCart.id);
+        if (!error) await admin.from("carts").delete().eq("id", anonCart.id);
       }
-      store.delete(`${CART_COOKIE}_id`);
     }
     return cartId;
   }
@@ -326,8 +328,8 @@ async function dbCartView(): Promise<CartView> {
     .select(
       `id, product_id, table_id, night_date, quantity, price_when_added,
        price_change_acknowledged_at, saved_for_later,
-       products(id, name, type, max_per_order, club_id,
-                clubs(id, name, slug, cities(slug)))`
+       products(id, name, type, min_age, max_per_order, club_id,
+                clubs(id, name, slug, min_age, cities(slug)))`
     )
     .eq("cart_id", cartId)
     .order("created_at");
@@ -359,10 +361,12 @@ async function dbCartView(): Promise<CartView> {
     return {
       id: item.id,
       productId: item.product_id,
+      tableId: item.table_id ?? undefined,
       productName: item.products.name,
       productType: item.products.type,
       clubId: item.products.clubs.id,
       clubName: item.products.clubs.name,
+      minAge: Math.max(item.products.clubs.min_age, item.products.min_age ?? 0),
       clubSlug: item.products.clubs.slug,
       citySlug: item.products.clubs.cities.slug,
       nightDate: item.night_date,

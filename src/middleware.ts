@@ -53,7 +53,7 @@ export async function middleware(request: NextRequest) {
   const needsCustomer = CUSTOMER_PREFIXES.some((p) => pathname.startsWith(p));
   const needsPartner =
     pathname.startsWith("/partner") &&
-    !["/partner/login", "/partner/apply"].some((p) => pathname.startsWith(p));
+    !["/partner/login", "/partner/signup", "/partner/apply"].some((p) => pathname.startsWith(p));
   const needsAdmin = pathname.startsWith("/admin");
 
   if ((needsCustomer || needsPartner || needsAdmin) && !user) {

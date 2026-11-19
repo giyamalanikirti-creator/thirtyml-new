@@ -3,6 +3,8 @@
 import { z } from "zod";
 import { supabaseServer, isSupabaseConfigured } from "@/lib/supabase/server";
 import { emailSchema, phoneSchema } from "@/lib/validation/auth";
+import { getUserAndProfile } from "@/lib/auth";
+import { getCities } from "@/lib/data/catalog";
 import { allow } from "@/lib/rate-limit";
 
 const applySchema = z.object({
@@ -28,13 +30,15 @@ export async function submitApplication(
     return { ok: false, error: "Applications aren't open in this environment" };
   }
 
+  const session = await getUserAndProfile();
+  if (!session) return { ok: false, error: "Sign in to submit a club application." };
+  if (!(await getCities()).some((city) => city.slug === parsed.data.city)) {
+    return { ok: false, error: "Choose a supported city." };
+  }
   const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   const { error } = await supabase.from("partner_applications").insert({
-    applicant_id: user?.id ?? null,
+    applicant_id: session.userId,
     club_name: parsed.data.clubName,
     city: parsed.data.city,
     contact_name: parsed.data.contactName,

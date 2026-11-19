@@ -1,11 +1,13 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getCities } from "@/lib/data/catalog";
 import { AuthForm } from "@/components/auth/auth-form";
 
 export const metadata: Metadata = { title: "Create account" };
 
-export default function SignupPage() {
+export default async function SignupPage() {
+  const cities = await getCities();
   return (
     <>
       <h1 className="mb-2 font-display text-xl font-semibold">
@@ -23,7 +25,7 @@ export default function SignupPage() {
         .
       </p>
       <Suspense>
-        <AuthForm mode="signup" />
+        <AuthForm mode="signup" cities={cities.map(({ slug, name }) => ({ slug, name }))} />
       </Suspense>
     </>
   );

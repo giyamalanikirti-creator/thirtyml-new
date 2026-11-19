@@ -11,7 +11,7 @@ export interface LivePrice {
 
 /**
  * Live prices for a set of products on a date. Subscribes to Supabase
- * Realtime on `products` and `price_overrides`; on any change re-fetches
+ * Realtime on products, price overrides, and nights; on any change re-fetches
  * from the `catalog_prices` RPC (the single source of truth) so the numbers
  * shown are always the server's, never derived client-side.
  */
@@ -67,6 +67,11 @@ export function useLivePrices(
           const id = (payload.new as { product_id?: string })?.product_id;
           if (id && productIds.includes(id)) refresh();
         }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "nights", filter: `on_date=eq.${date}` },
+        refresh
       )
       .subscribe();
 

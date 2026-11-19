@@ -1,3 +1,7 @@
+import { redirect } from "next/navigation";
+import { getUserAndProfile } from "@/lib/auth";
+import { getCities } from "@/lib/data/catalog";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 import { Header } from "@/components/shell/header";
 import { Footer } from "@/components/shell/footer";
@@ -5,7 +9,10 @@ import { ApplyForm } from "./apply-form";
 
 export const metadata: Metadata = { title: "List your club" };
 
-export default function PartnerApplyPage() {
+export default async function PartnerApplyPage() {
+  if (!isSupabaseConfigured()) redirect("/partner/signup");
+  if (!(await getUserAndProfile())) redirect("/partner/signup");
+  const cities = await getCities();
   return (
     <>
       <Header />
@@ -18,7 +25,7 @@ export default function PartnerApplyPage() {
           days. You keep full control of your prices, always.
         </p>
         <div className="mt-8">
-          <ApplyForm />
+          <ApplyForm cities={cities.map(({ slug, name }) => ({ slug, name }))} />
         </div>
       </main>
       <Footer />

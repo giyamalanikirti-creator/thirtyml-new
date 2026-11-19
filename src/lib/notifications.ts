@@ -84,20 +84,22 @@ export async function queueNotification(row: {
 }
 
 /** Deliver up to `limit` due notifications. Called by the cron route. */
-export async function processNotificationOutbox(limit = 50): Promise<{
+export async function processNotificationOutbox(limit = 50, orderId?: string): Promise<{
   sent: number;
   failed: number;
 }> {
   const admin = supabaseAdmin();
-  const { data: due } = await admin
+  const query = admin
     .from("notifications")
-    .select("id, user_id, channel, category, title, body")
+    .select("id, user_id, channel, category, title, body, payload")
     .is("sent_at", null)
     .is("failed_at", null)
     .lte("send_after", new Date().toISOString())
     .lt("attempts", 5)
     .order("created_at")
     .limit(limit);
+  if (orderId) query.eq("channel", "email").contains("payload", { order_id: orderId });
+  const { data: due } = await query;
 
   let sent = 0;
   let failed = 0;
@@ -117,11 +119,23 @@ export async function processNotificationOutbox(limit = 50): Promise<{
               .single()
           : { data: null };
         if (n.channel === "email") {
-          if (!profile?.email) throw new Error("no email on profile");
+          const payload = n.payload && typeof n.payload === "object" && !Array.isArray(n.payload)
+            ? n.payload
+            : undefined;
+          const recipient = payload?.recipient;
+          const to = typeof recipient === "string" ? recipient : profile?.email;
+          if (!to) throw new Error("no booking email");
+          const safeBody = (n.body ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+          const payloadOrderId = payload?.order_id;
+          const ticketLink = typeof recipient === "string" && typeof payloadOrderId === "string"
+            ? new URL(`/orders/${encodeURIComponent(payloadOrderId)}`, process.env.NEXT_PUBLIC_SITE_URL ?? "https://thirtyml.in").href
+            : null;
           await email.send({
-            to: profile.email,
+            to,
+            idempotencyKey: n.id,
             subject: n.title ?? "ThirtyML",
-            html: `<p>${(n.body ?? "").replaceAll("\n", "<br/>")}</p>`,
+            html: `<p>${safeBody.replaceAll("\n", "<br/>")}</p>` +
+              (ticketLink ? `<p><a href="${ticketLink}">View your QR tickets</a></p>` : ""),
             text: n.body ?? "",
           });
         } else if (n.channel === "whatsapp" || n.channel === "sms") {

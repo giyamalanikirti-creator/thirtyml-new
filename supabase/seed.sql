@@ -124,15 +124,15 @@ insert into public.clubs
    '21000000-0000-4000-8000-000000000008', 'mansion-tapas-club', 'Mansion Tapas & Club',
    'Agra''s club-and-kitchen hybrid on Gwalior Road — tapas till late, Bollywood after dark.',
    'approved', false, 27.1720, 78.0120, 'Gwalior Road, Baluganj, Agra', 21, 'Casual'),
-  -- TODO: verify address & coordinates for Beep and Molecule (placeholders)
+  -- Leave coordinates blank until the venue addresses are verified.
   ('30000000-0000-4000-8000-000000000009', '20000000-0000-4000-8000-000000000003',
    '21000000-0000-4000-8000-000000000009', 'beep', 'Beep',
    'High-energy commercial nights in central Agra.',
-   'approved', false, 27.1767, 78.0081, 'Agra (address to be verified)', 21, 'Casual'),
+   'approved', false, null, null, 'Agra (address to be verified)', 21, 'Casual'),
   ('30000000-0000-4000-8000-000000000010', '20000000-0000-4000-8000-000000000003',
    '21000000-0000-4000-8000-000000000009', 'molecule', 'Molecule',
    'Brewpub-style venue with weekend DJ nights.',
-   'approved', false, 27.1767, 78.0081, 'Agra (address to be verified)', 21, 'Casual');
+   'approved', false, null, null, 'Agra (address to be verified)', 21, 'Casual');
 
 -- demo team at Kitty Su
 insert into public.club_members (club_id, user_id, role) values

@@ -29,6 +29,7 @@ export async function ensureGatewayOrder(
     .from("orders")
     .select("id, user_id, status, total, hold_expires_at, idempotency_key")
     .eq("id", orderId)
+    .eq("payment_method", "online")
     .single();
   if (!order || order.user_id !== userId) {
     return { ok: false, error: "Order not found" };
@@ -108,6 +109,7 @@ export async function finalizeOrderPaid(params: {
     .update({ status: "paid" })
     .eq("id", params.orderId)
     .eq("status", "pending_payment")
+    .eq("payment_method", "online")
     .select("id, user_id, coupon_id, discount, wallet_used, total, subtotal, convenience_fee, tax, lead_guest_name, lead_guest_email, lead_guest_phone")
     .maybeSingle();
 

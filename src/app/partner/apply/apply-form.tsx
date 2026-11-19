@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import * as React from "react";
 import { submitApplication } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function ApplyForm() {
+export function ApplyForm({ cities }: { cities: { slug: string; name: string }[] }) {
   const [busy, setBusy] = React.useState(false);
   const [done, setDone] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -13,7 +14,7 @@ export function ApplyForm() {
   if (done) {
     return (
       <p className="rounded-md border border-line bg-night-raised p-4 text-sm">
-        Application received. We&apos;ll be in touch within 2 working days.
+        Application received. <Link className="text-plum-bright underline" href="/partner">View application status</Link>.
       </p>
     );
   }
@@ -49,7 +50,12 @@ export function ApplyForm() {
       ).map(([name, label, type]) => (
         <label key={name} className="block text-sm">
           <span className="mb-1 block text-moon-dim">{label}</span>
-          <Input name={name} type={type} required />
+          {name === "city" ? (
+            <select name="city" required defaultValue="" className="h-10 w-full rounded border border-line bg-night px-3">
+              <option value="">Choose a city</option>
+              {cities.map((city) => <option key={city.slug} value={city.slug}>{city.name}</option>)}
+            </select>
+          ) : <Input name={name} type={type} required />}
         </label>
       ))}
       <label className="block text-sm">

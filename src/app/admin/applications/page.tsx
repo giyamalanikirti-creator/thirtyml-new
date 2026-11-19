@@ -31,6 +31,7 @@ export default async function ApplicationsPage() {
                 <p className="text-sm text-moon-dim">
                   {a.city} · {a.contact_name} · {a.contact_phone} · {a.contact_email}
                 </p>
+                {!a.applicant_id && <p className="text-xs text-moon-dim">Ask the applicant to sign in and submit again before approval.</p>}
                 {a.message && (
                   <p className="mt-2 text-sm text-moon-dim">{a.message}</p>
                 )}
@@ -41,7 +42,7 @@ export default async function ApplicationsPage() {
               {a.status === "pending" && (
                 <div className="flex gap-2">
                   <form action={markApplication.bind(null, a.id, "approved")}>
-                    <Button size="sm" type="submit">Approve</Button>
+                    <Button size="sm" type="submit" disabled={!a.applicant_id}>Approve</Button>
                   </form>
                   <form action={markApplication.bind(null, a.id, "rejected")}>
                     <Button size="sm" variant="ghost" type="submit">Reject</Button>

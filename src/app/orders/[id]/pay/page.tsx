@@ -18,11 +18,12 @@ export default async function PayPage({
   const supabase = await supabaseServer();
   const { data: order } = await supabase
     .from("orders")
-    .select("id, status, total, hold_expires_at, lead_guest_name, lead_guest_email, lead_guest_phone")
+    .select("id, status, payment_method, total, hold_expires_at, lead_guest_name, lead_guest_email, lead_guest_phone")
     .eq("id", id)
     .maybeSingle();
   if (!order) notFound();
-  if (order.status === "paid") redirect(`/orders/${id}`);
+  if (order.status === "paid" || order.status === "venue_due") redirect(`/orders/${id}`);
+  if (order.payment_method === "venue") notFound();
   if (order.status !== "pending_payment") redirect(`/orders/${id}/status`);
 
   return (

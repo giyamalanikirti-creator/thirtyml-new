@@ -9,6 +9,7 @@ export const resendEmail: EmailProvider = {
       headers: {
         Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
         "Content-Type": "application/json",
+        ...(message.idempotencyKey && { "Idempotency-Key": message.idempotencyKey }),
       },
       body: JSON.stringify({
         from: process.env.EMAIL_FROM ?? "ThirtyML <tickets@thirtyml.in>",

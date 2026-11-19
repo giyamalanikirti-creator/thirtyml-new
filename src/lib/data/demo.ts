@@ -31,8 +31,8 @@ interface DemoClubSeed {
   name: string;
   city: string;
   area: string;
-  lat: number;
-  lng: number;
+  lat: number | null;
+  lng: number | null;
   desc: string;
   genres: string[];
   stag: number; // paise
@@ -41,7 +41,6 @@ interface DemoClubSeed {
   rating: number | null;
   ratingCount: number;
   hasTables?: boolean;
-  image: string;
 }
 
 const seeds: DemoClubSeed[] = [
@@ -52,7 +51,6 @@ const seeds: DemoClubSeed[] = [
     desc: "The Lalit's flagship club — international DJs, a serious sound system and Mumbai's most eclectic crowd.",
     genres: ["Techno", "EDM", "House"], stag: 250000, couple: 350000, ladies: 50000,
     rating: 4.5, ratingCount: 132, hasTables: true,
-    image: U("photo-1571266028243-d220c6a3ce84"),
   },
   {
     slug: "matahari", name: "Matahari", city: "mumbai", area: "Worli",
@@ -60,7 +58,6 @@ const seeds: DemoClubSeed[] = [
     desc: "Worli's big-room club at Atria Mall — commercial and Bollywood nights with a large dance floor.",
     genres: ["Bollywood", "Commercial"], stag: 200000, couple: 300000, ladies: 0,
     rating: 4.1, ratingCount: 89,
-    image: U("photo-1566737236500-c8ac43014a67"),
   },
   {
     slug: "antisocial", name: "AntiSocial", city: "mumbai", area: "Khar West",
@@ -68,7 +65,6 @@ const seeds: DemoClubSeed[] = [
     desc: "Khar's underground favourite — hip-hop, techno and live acts in a raw basement space.",
     genres: ["Hip-hop", "Techno"], stag: 150000, couple: 250000, ladies: null,
     rating: 4.4, ratingCount: 210,
-    image: U("photo-1572441713132-51c75654db73"),
   },
   {
     slug: "polly-esthers", name: "Polly Esther's", city: "mumbai", area: "Colaba",
@@ -76,7 +72,6 @@ const seeds: DemoClubSeed[] = [
     desc: "Retro-themed Colaba institution — disco balls, 80s and 90s classics.",
     genres: ["Commercial"], stag: 180000, couple: 280000, ladies: 0,
     rating: 3.9, ratingCount: 64,
-    image: U("photo-1545128485-c400e7702796"),
   },
   {
     slug: "trilogy", name: "Trilogy", city: "mumbai", area: "Juhu",
@@ -84,7 +79,6 @@ const seeds: DemoClubSeed[] = [
     desc: "Beachside multi-level club at Hotel Sea Princess — three floors, three vibes.",
     genres: ["House", "Commercial", "Bollywood"], stag: 240000, couple: 360000, ladies: 60000,
     rating: 4.2, ratingCount: 148, hasTables: true,
-    image: U("photo-1551024709-8f23befc6f87"),
   },
   {
     slug: "aer", name: "AER", city: "mumbai", area: "Lower Parel",
@@ -92,7 +86,6 @@ const seeds: DemoClubSeed[] = [
     desc: "Four Seasons' 34th-floor rooftop — skyline views, cocktails, deep house till late.",
     genres: ["House", "Deep house"], stag: 300000, couple: 450000, ladies: 100000,
     rating: 4.6, ratingCount: 203, hasTables: true,
-    image: U("photo-1540039155733-5bb30b53aa14"),
   },
 
   // -------- Pune (5) --------
@@ -102,7 +95,6 @@ const seeds: DemoClubSeed[] = [
     desc: "Baner's warehouse-scale EDM and techno venue — big lineups, bigger drops.",
     genres: ["EDM", "Techno"], stag: 220000, couple: 320000, ladies: 60000,
     rating: 4.3, ratingCount: 156, hasTables: true,
-    image: U("photo-1543007630-9710e4a00a20"),
   },
   {
     slug: "mi-a-mi", name: "Mi-A-Mi", city: "pune", area: "Senapati Bapat Road",
@@ -110,7 +102,6 @@ const seeds: DemoClubSeed[] = [
     desc: "JW Marriott's glossy rooftop club — house music, skyline views, dressed-up crowd.",
     genres: ["House", "Commercial"], stag: 280000, couple: 400000, ladies: 80000,
     rating: 4.2, ratingCount: 98, hasTables: true,
-    image: U("photo-1516450360452-9312f5e86fc7"),
   },
   {
     slug: "mix-at-36", name: "Mix@36", city: "pune", area: "Koregaon Park",
@@ -118,7 +109,6 @@ const seeds: DemoClubSeed[] = [
     desc: "The Westin's late-night lounge in Koregaon Park — commercial hits and cocktails.",
     genres: ["Commercial", "Bollywood"], stag: 200000, couple: 300000, ladies: null,
     rating: 4.0, ratingCount: 47,
-    image: U("photo-1587351021355-a479a299d2f9"),
   },
   {
     slug: "high-spirits", name: "High Spirits", city: "pune", area: "Koregaon Park",
@@ -126,7 +116,6 @@ const seeds: DemoClubSeed[] = [
     desc: "Pune's live-music hub — bands, DJ nights, open-air seating and a huge weekday crowd.",
     genres: ["Live music", "Rock", "Commercial"], stag: 100000, couple: 180000, ladies: 0,
     rating: 4.3, ratingCount: 312,
-    image: U("photo-1514933651103-005eec06c04b"),
   },
   {
     slug: "penthouze", name: "Penthouze", city: "pune", area: "Baner",
@@ -134,7 +123,6 @@ const seeds: DemoClubSeed[] = [
     desc: "Rooftop night-life skydeck — commercial Bollywood and EDM every weekend.",
     genres: ["Bollywood", "EDM", "Commercial"], stag: 180000, couple: 280000, ladies: 50000,
     rating: 4.1, ratingCount: 189, hasTables: true,
-    image: U("photo-1559329007-40df8a9345d8"),
   },
 
   // -------- Agra (5) --------
@@ -144,23 +132,20 @@ const seeds: DemoClubSeed[] = [
     desc: "Agra's club-and-kitchen hybrid on Gwalior Road — tapas till late, Bollywood after dark.",
     genres: ["Bollywood", "Commercial"], stag: 100000, couple: 150000, ladies: 0,
     rating: 4.0, ratingCount: 38,
-    image: U("photo-1559526324-c1f275fbfa32"),
   },
   {
     slug: "beep", name: "Beep", city: "agra", area: "Agra Central",
-    lat: 27.1767, lng: 78.0081,
+    lat: null, lng: null,
     desc: "High-energy commercial nights in central Agra.",
     genres: ["Commercial"], stag: 80000, couple: 120000, ladies: null,
     rating: 3.8, ratingCount: 22,
-    image: U("photo-1574391884720-bbc3740c59d1"),
   },
   {
     slug: "molecule", name: "Molecule", city: "agra", area: "Agra Central",
-    lat: 27.1767, lng: 78.0081,
+    lat: null, lng: null,
     desc: "Brewpub-style venue with weekend DJ nights.",
     genres: ["Commercial", "EDM"], stag: 90000, couple: 140000, ladies: null,
     rating: 4.1, ratingCount: 31,
-    image: U("photo-1575444758702-4a6b9222336e"),
   },
   {
     slug: "mocambo", name: "Mocambo", city: "agra", area: "Taj Nagri",
@@ -168,7 +153,6 @@ const seeds: DemoClubSeed[] = [
     desc: "Classic Taj Nagri lounge — long cocktail list, slow-burn house, candle-lit tables.",
     genres: ["Lounge", "House"], stag: 90000, couple: 150000, ladies: 50000,
     rating: 4.0, ratingCount: 54,
-    image: U("photo-1470337458703-46ad1756a187"),
   },
   {
     slug: "cafe-coffee-club", name: "Cafe & Coffee Club", city: "agra", area: "Sadar Bazaar",
@@ -176,7 +160,6 @@ const seeds: DemoClubSeed[] = [
     desc: "Weekend-only club atop a cafe — Bollywood, hip-hop and the city's youngest crowd.",
     genres: ["Bollywood", "Hip-hop"], stag: 70000, couple: 110000, ladies: 0,
     rating: 3.9, ratingCount: 41,
-    image: U("photo-1527224538127-2104bb71c51b"),
   },
 ];
 
@@ -199,7 +182,6 @@ function toSummary(s: DemoClubSeed): ClubSummary {
     minPrice: Math.min(s.stag, s.couple, ...(s.ladies !== null ? [s.ladies] : [])),
     priceUpdatedAt: updatedAt,
     openTonight: ![1, 2].includes(new Date().getDay()),
-    imageUrl: s.image,
   };
 }
 

@@ -34,7 +34,7 @@ export default async function TicketPage({
     .from("bookings")
     .select(
       `id, booking_code, night_date, guest_count, status,
-       clubs(name, slug, address, lat, lng, phone, cities(slug)),
+       clubs(name, slug, address, lat, lng, phone, min_age, cities(slug)),
        tickets(qr_token, status, guests_total, guests_admitted),
        booking_guests(full_name, is_lead)`
     )
@@ -99,6 +99,11 @@ export default async function TicketPage({
               <p className="mt-1 text-xs text-night/60">
                 Turn your brightness up at the door. Works offline once this
                 page has loaded.
+              </p>
+              <p className="mt-3 text-sm font-medium">
+                Every guest must show valid photo ID at the club entrance. {club
+                  ? `The venue minimum is ${club.min_age}+. Check the age requirement for your ticket type.`
+                  : "Guests must meet the venue’s minimum age."}
               </p>
               {ticket && ticket.guests_admitted > 0 && (
                 <p className="mt-2 text-xs font-medium">
