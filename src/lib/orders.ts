@@ -80,6 +80,7 @@ export async function createOrderFromCart(params: {
   guest: GuestDetails;
   couponCode: string | null;
   useWallet: boolean;
+  paymentMethod: "online" | "venue";
 }): Promise<CreateOrderResult> {
   if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return {
@@ -87,6 +88,10 @@ export async function createOrderFromCart(params: {
       error:
         "Checkout needs a configured Supabase project. In this demo environment you can browse and fill the cart, but not pay.",
     };
+  }
+
+  if (params.paymentMethod === "venue" && params.useWallet) {
+    return { ok: false, error: "Turn off wallet credit to pay at the venue." };
   }
 
   const view = await getCartView();
@@ -140,6 +145,7 @@ export async function createOrderFromCart(params: {
     .insert({
       user_id: params.userId,
       status: "pending_payment",
+      payment_method: params.paymentMethod,
       subtotal: totals.subtotal,
       discount: totals.discount,
       convenience_fee: totals.convenienceFee,
@@ -166,6 +172,7 @@ export async function createOrderFromCart(params: {
     const { error: itemError } = await admin.from("order_items").insert({
       order_id: order.id,
       product_id: line.productId,
+      table_id: line.tableId,
       night_date: line.nightDate,
       quantity: line.quantity,
       unit_price: line.currentPrice,
@@ -183,6 +190,7 @@ export async function createOrderFromCart(params: {
       p_date: line.nightDate,
       p_quantity: line.quantity,
       p_order_id: order.id,
+      p_table_id: line.tableId,
       p_hold_minutes: HOLD_MINUTES,
     });
     if (holdError) {
@@ -197,12 +205,27 @@ export async function createOrderFromCart(params: {
     }
   }
 
+  if (params.paymentMethod === "venue") {
+    const { error } = await admin.rpc("confirm_venue_order", {
+      p_order_id: order.id,
+      p_user_id: params.userId,
+      p_cart_lines: lines.map(({ id, quantity }) => ({ id, quantity })),
+      p_site_url: (process.env.NEXT_PUBLIC_SITE_URL ?? "https://thirtyml.in").replace(/\/$/, ""),
+    });
+    if (error) {
+      // A lost response can arrive after the transaction commits.
+      const { data: current } = await admin.from("orders").select("status").eq("id", order.id).maybeSingle();
+      if (current?.status !== "venue_due") {
+        await abortOrder(order.id);
+        return { ok: false, error: "We couldn't confirm the reservation. Review your cart and try again." };
+      }
+    }
+  }
+
   return { ok: true, orderId: order.id, total: totals.total };
 }
 
 async function abortOrder(orderId: string): Promise<void> {
   const admin = supabaseAdmin();
-  await admin.from("inventory_holds").delete().eq("order_id", orderId);
-  await admin.from("order_items").delete().eq("order_id", orderId);
-  await admin.from("orders").delete().eq("id", orderId);
+  await admin.from("orders").delete().eq("id", orderId).eq("status", "pending_payment");
 }

@@ -25,7 +25,10 @@ export function AuthForm({
 }) {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") ?? (partner ? "/partner" : "/");
+  const requestedPath = params.get("next");
+  const next = requestedPath?.startsWith("/") && !/^[/][\/\\]/.test(requestedPath)
+    ? requestedPath
+    : partner ? "/partner" : mode === "login" ? "/clubs" : "/";
 
   const [method, setMethod] = React.useState<Method>(
     partner ? "email" : "phone"

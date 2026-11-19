@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -26,7 +27,7 @@ export default async function NotificationsPage() {
   const [{ data: notifications }, { data: prefsRow }] = await Promise.all([
     supabase
       .from("notifications")
-      .select("id, title, body, read_at, created_at, category")
+      .select("id, title, body, read_at, created_at, category, payload")
       .eq("channel", "in_app")
       .order("created_at", { ascending: false })
       .limit(50),
@@ -60,29 +61,39 @@ export default async function NotificationsPage() {
           </p>
         ) : (
           <ul className="mt-6 space-y-2">
-            {rows.map((n) => (
-              <li
-                key={n.id}
-                className={cn(
-                  "rounded-md border border-line px-4 py-3",
-                  n.read_at ? "bg-night" : "bg-night-raised"
-                )}
-              >
-                <div className="flex items-baseline justify-between gap-3">
-                  <p className={cn("text-sm", !n.read_at && "font-medium")}>
-                    {n.title}
-                  </p>
-                  <span className="shrink-0 text-xs text-moon-dim">
-                    {timeFmt.format(new Date(n.created_at))}
-                  </span>
-                </div>
-                {n.body && (
-                  <p className="mt-1 whitespace-pre-line text-sm text-moon-dim">
-                    {n.body}
-                  </p>
-                )}
-              </li>
-            ))}
+            {rows.map((n) => {
+              const orderId = n.payload && typeof n.payload === "object" && !Array.isArray(n.payload)
+                ? n.payload.order_id
+                : undefined;
+              return (
+                <li
+                  key={n.id}
+                  className={cn(
+                    "rounded-md border border-line px-4 py-3",
+                    n.read_at ? "bg-night" : "bg-night-raised"
+                  )}
+                >
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className={cn("text-sm", !n.read_at && "font-medium")}>
+                      {n.title}
+                    </p>
+                    <span className="shrink-0 text-xs text-moon-dim">
+                      {timeFmt.format(new Date(n.created_at))}
+                    </span>
+                  </div>
+                  {n.body && (
+                    <p className="mt-1 whitespace-pre-line text-sm text-moon-dim">
+                      {n.body}
+                    </p>
+                  )}
+                  {n.category === "booking_confirmed" && typeof orderId === "string" && (
+                    <Link href={`/orders/${encodeURIComponent(orderId)}`} className="mt-2 inline-block text-sm text-plum-bright underline underline-offset-4">
+                      View QR tickets
+                    </Link>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
 

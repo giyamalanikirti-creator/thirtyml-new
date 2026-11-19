@@ -64,6 +64,7 @@ export interface EmailMessage {
   /** Rendered HTML body */
   html: string;
   text?: string;
+  idempotencyKey?: string;
   attachments?: { filename: string; content: Buffer | string }[];
 }
 

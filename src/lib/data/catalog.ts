@@ -26,6 +26,24 @@ import {
  * All queries run under RLS as the anonymous/current user.
  */
 
+function clubPhotoUrl(
+  photos: { storage_path: string; sort_order: number }[],
+  supabase: Awaited<ReturnType<typeof supabaseServer>>
+): string | null {
+  const photo = [...photos].sort((a, b) => a.sort_order - b.sort_order)[0]?.storage_path;
+  if (!photo) return null;
+  if (photo.startsWith("https://")) {
+    const url = URL.parse(photo);
+    if (!url) return null;
+    const storageUrl = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!);
+    return url.hostname === "images.unsplash.com" ||
+      (url.origin === storageUrl.origin && url.pathname.startsWith("/storage/v1/"))
+      ? url.href
+      : null;
+  }
+  return supabase.storage.from("club-photos").getPublicUrl(photo).data.publicUrl;
+}
+
 export function todayIst(): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Kolkata",
@@ -96,7 +114,7 @@ export async function listClubs(filters: ClubFilters): Promise<ClubSummary[]> {
     .from("clubs")
     .select(
       `id, slug, name, min_age, is_claimed, lat, lng, avg_rating, rating_count,
-       cities!inner(slug), areas(name), club_genres(genres(name))`
+       cities!inner(slug), areas(name), club_genres(genres(name)), club_photos(storage_path, sort_order)`
     )
     .eq("status", "approved")
     .eq("cities.slug", filters.city);
@@ -127,7 +145,7 @@ export async function listClubs(filters: ClubFilters): Promise<ClubSummary[]> {
       minPrice: b?.minPrice ?? null,
       priceUpdatedAt: b?.priceUpdatedAt ?? null,
       openTonight: b?.isOpen ?? true,
-      imageUrl: null,
+      imageUrl: clubPhotoUrl(c.club_photos ?? [], supabase),
     };
   });
 
@@ -181,7 +199,7 @@ export async function getClubDetail(
        rating_count,
        cities!inner(slug), areas(name),
        club_genres(genres(name)), club_amenities(amenities(name)),
-       club_hours(day_of_week, opens_at, closes_at, is_closed)`
+       club_hours(day_of_week, opens_at, closes_at, is_closed), club_photos(storage_path, sort_order)`
     )
     .eq("status", "approved")
     .eq("cities.slug", citySlug)
@@ -284,7 +302,7 @@ export async function getClubDetail(
       : null,
     priceUpdatedAt: entryProducts[0]?.priceUpdatedAt ?? null,
     openTonight: night?.is_open ?? true,
-    imageUrl: null,
+    imageUrl: clubPhotoUrl(c.club_photos ?? [], supabase),
     description: c.description,
     address: c.address,
     websiteUrl: c.website_url,

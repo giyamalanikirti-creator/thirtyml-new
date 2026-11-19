@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Header } from "@/components/shell/header";
@@ -58,7 +59,12 @@ export default async function ClubsPage({
     <>
       <Header city={city} />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
-        <h1 className="font-display text-2xl font-semibold">Explore clubs</h1>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="font-display text-2xl font-semibold">Explore clubs</h1>
+          <Link href={`/map?city=${encodeURIComponent(city)}`} className="text-sm text-plum-bright underline underline-offset-4 lg:hidden">
+            View city map
+          </Link>
+        </div>
         <div className="mt-4">
           <Suspense>
             <FiltersBar cities={cities} />
@@ -86,7 +92,7 @@ export default async function ClubsPage({
                 pins={pins}
                 center={[cityInfo.lat, cityInfo.lng]}
                 zoom={11}
-                height="calc(100vh - 120px)"
+                height="clamp(340px, calc(100dvh - 180px), 660px)"
               />
             </div>
           </div>

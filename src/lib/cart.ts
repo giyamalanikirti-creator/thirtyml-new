@@ -21,6 +21,7 @@ const CART_COOKIE = "tml_cart";
 export interface CartLine {
   id: string; // cart_items id, or cookie line key
   productId: string;
+  tableId?: string;
   productName: string;
   productType: string;
   clubId: string;
@@ -212,13 +213,12 @@ async function resolveCartId(create: boolean): Promise<string | null> {
         .is("user_id", null)
         .maybeSingle();
       if (anonCart) {
-        await admin
+        const { error } = await admin
           .from("cart_items")
           .update({ cart_id: cartId })
           .eq("cart_id", anonCart.id);
-        await admin.from("carts").delete().eq("id", anonCart.id);
+        if (!error) await admin.from("carts").delete().eq("id", anonCart.id);
       }
-      store.delete(`${CART_COOKIE}_id`);
     }
     return cartId;
   }
@@ -359,6 +359,7 @@ async function dbCartView(): Promise<CartView> {
     return {
       id: item.id,
       productId: item.product_id,
+      tableId: item.table_id ?? undefined,
       productName: item.products.name,
       productType: item.products.type,
       clubId: item.products.clubs.id,

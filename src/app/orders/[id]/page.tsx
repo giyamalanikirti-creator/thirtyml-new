@@ -32,7 +32,7 @@ export default async function OrderPage({
     .from("orders")
     .select(
       `id, status, subtotal, discount, convenience_fee, tax, wallet_used, total,
-       created_at,
+       created_at, lead_guest_email,
        bookings(id, booking_code, night_date, guest_count, status, clubs(name, slug, cities(slug))),
        invoices(invoice_number)`
     )
@@ -40,12 +40,31 @@ export default async function OrderPage({
     .maybeSingle();
   if (!order) notFound();
   if (order.status === "pending_payment") redirect(`/orders/${id}/pay`);
+  const payAtVenue = order.status === "venue_due";
+  const hasCancelledBookings = order.bookings.some((booking) => booking.status === "cancelled");
 
   return (
     <>
       <Header />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
-        {order.status === "paid" || order.status === "partially_refunded" ? (
+        {payAtVenue ? (
+          <>
+            <h1 className="font-display text-3xl font-bold text-drop">
+              {hasCancelledBookings ? "Reservation details" : "Reservation confirmed"}
+            </h1>
+            {hasCancelledBookings ? (
+              <p className="mt-2 text-sm text-moon-dim">See the status of each booking below.</p>
+            ) : (
+              <p className="mt-2 text-sm text-moon-dim">
+                Pay {formatPaise(order.total)} when you arrive. Your QR tickets are ready below and in your{" "}
+                <Link href="/notifications" className="text-plum-bright underline underline-offset-4">ThirtyML inbox</Link>.
+                {process.env.RESEND_API_KEY && order.lead_guest_email && (
+                  <> A copy will be emailed to {order.lead_guest_email}.</>
+                )}
+              </p>
+            )}
+          </>
+        ) : order.status === "paid" || order.status === "partially_refunded" ? (
           <>
             <p className="font-display text-3xl font-bold text-drop">
               You&apos;re in. 🎉
@@ -134,7 +153,9 @@ export default async function OrderPage({
               </div>
             )}
             <div className="flex justify-between border-t border-line pt-1 font-semibold">
-              <dt>Total paid</dt>
+              <dt>{payAtVenue
+                ? hasCancelledBookings ? "Original reservation total" : "Due at the venue"
+                : "Total paid"}</dt>
               <dd>{formatPaise(order.total)}</dd>
             </div>
           </dl>

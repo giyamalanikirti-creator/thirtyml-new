@@ -1,5 +1,7 @@
 "use server";
 
+import { after } from "next/server";
+import { processNotificationOutbox } from "@/lib/notifications";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { getCartView } from "@/lib/cart";
@@ -22,6 +24,7 @@ const guestSchema = z.object({
   email: emailSchema,
   couponCode: z.string().trim().max(40).optional(),
   useWallet: z.boolean().optional(),
+  paymentMethod: z.enum(["online", "venue"]),
   agreed: z.literal(true, {
     message: "Please accept the terms and refund policy",
   }),
@@ -45,7 +48,13 @@ export async function submitCheckout(input: unknown): Promise<
     },
     couponCode: parsed.data.couponCode || null,
     useWallet: Boolean(parsed.data.useWallet),
+    paymentMethod: parsed.data.paymentMethod,
   });
   if (!result.ok) return result;
+  if (parsed.data.paymentMethod === "venue" && process.env.RESEND_API_KEY) {
+    after(async () => {
+      await processNotificationOutbox(1, result.orderId);
+    });
+  }
   return { ok: true, orderId: result.orderId };
 }

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Star, MapPin, Globe, AtSign, Share2 } from "lucide-react";
@@ -13,7 +12,7 @@ import { DateStrip } from "@/components/catalog/date-strip";
 import { LivePricePanel } from "@/components/catalog/live-price-panel";
 import { Sparkline } from "@/components/catalog/sparkline";
 import { EventCard } from "@/components/catalog/event-card";
-import { clubGradient } from "@/components/catalog/club-card";
+import { ClubPhoto } from "@/components/catalog/club-photo";
 import { ClubMapLazy } from "@/components/map/club-map-lazy";
 import { getClubDetail, todayIst } from "@/lib/data/catalog";
 
@@ -91,18 +90,13 @@ export default async function ClubPage({
         </nav>
 
         <div className="relative mt-4 h-56 overflow-hidden rounded-xl sm:h-72">
-          {club.imageUrl ? (
-            <Image
-              src={club.imageUrl}
-              alt={club.name}
-              fill
-              priority
-              sizes="(min-width: 1024px) 72rem, 100vw"
-              className="object-cover"
-            />
-          ) : (
-            <div aria-hidden className="absolute inset-0" style={{ background: clubGradient(club.slug) }} />
-          )}
+          <ClubPhoto
+            src={club.imageUrl}
+            slug={club.slug}
+            priority
+            sizes="(min-width: 1024px) 72rem, 100vw"
+            className="object-cover"
+          />
           <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-night via-night/40 to-transparent" />
         </div>
 
@@ -157,7 +151,7 @@ export default async function ClubPage({
                   <AtSign className="h-4 w-4" aria-hidden /> Instagram
                 </a>
               )}
-              {club.lat && club.lng && (
+              {club.lat !== null && club.lng !== null && (
                 <a
                   href={`https://www.google.com/maps/dir/?api=1&destination=${club.lat},${club.lng}`}
                   target="_blank"
@@ -264,7 +258,7 @@ export default async function ClubPage({
               </section>
             )}
 
-            {club.lat && club.lng && (
+            {club.lat !== null && club.lng !== null && (
               <section className="mt-8">
                 <h2 className="mb-3 font-display text-lg font-semibold">
                   Where it is
@@ -285,8 +279,8 @@ export default async function ClubPage({
                   zoom={15}
                   height="280px"
                 />
-                {club.address && (
-                  <p className="mt-2 text-sm text-moon-dim">{club.address}</p>
+                {(club.address ?? club.areaName) && (
+                  <p className="mt-3 text-sm text-moon-dim">{club.address ?? club.areaName}</p>
                 )}
               </section>
             )}

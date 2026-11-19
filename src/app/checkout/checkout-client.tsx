@@ -38,6 +38,7 @@ export function CheckoutClient({
   const [totals, setTotals] = React.useState(initialTotals);
   const [couponMessage, setCouponMessage] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [choosePayment, setChoosePayment] = React.useState(false);
   const [busy, setBusy] = React.useState<"coupon" | "pay" | null>(null);
 
   async function refreshTotals(code: string | null, wallet: boolean) {
@@ -64,11 +65,19 @@ export function CheckoutClient({
   }
 
   async function toggleWallet(next: boolean) {
-    setUseWallet(next);
-    await refreshTotals(appliedCoupon, next);
+    setBusy("coupon");
+    setError(null);
+    try {
+      await refreshTotals(appliedCoupon, next);
+      setUseWallet(next);
+    } catch {
+      setError("Couldn't update the totals. Please try again.");
+    } finally {
+      setBusy(null);
+    }
   }
 
-  async function pay() {
+  async function pay(paymentMethod: "online" | "venue") {
     setBusy("pay");
     setError(null);
     try {
@@ -79,13 +88,16 @@ export function CheckoutClient({
         couponCode: appliedCoupon ?? undefined,
         useWallet,
         agreed,
+        paymentMethod,
       });
       if (!result.ok) {
         setError(result.error);
+        setBusy(null);
         return;
       }
-      router.push(`/orders/${result.orderId}/pay`);
-    } finally {
+      router.replace(`/orders/${result.orderId}${paymentMethod === "online" ? "/pay" : ""}`);
+    } catch {
+      setError("Couldn't complete checkout. Please try again.");
       setBusy(null);
     }
   }
@@ -95,91 +107,95 @@ export function CheckoutClient({
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
       <div className="space-y-8">
-        <section>
-          <h2 className="font-display text-lg font-semibold">1 · Review</h2>
-          <ul className="mt-3 divide-y divide-line rounded-md border border-line">
-            {active.map((line) => (
-              <li
-                key={line.id}
-                className="flex items-center justify-between px-4 py-3 text-sm"
-              >
-                <span>
-                  {line.productName} ×{line.quantity}
-                  <span className="ml-2 text-moon-dim">
-                    {line.clubName} ·{" "}
-                    {nightFmt.format(new Date(`${line.nightDate}T12:00:00`))}
+        <fieldset disabled={busy === "pay" || choosePayment} className="min-w-0 space-y-8">
+          <legend className="sr-only">Order details</legend>
+          <section>
+            <h2 className="font-display text-lg font-semibold">1 · Review</h2>
+            <ul className="mt-3 divide-y divide-line rounded-md border border-line">
+              {active.map((line) => (
+                <li
+                  key={line.id}
+                  className="flex items-center justify-between px-4 py-3 text-sm"
+                >
+                  <span>
+                    {line.productName} ×{line.quantity}
+                    <span className="ml-2 text-moon-dim">
+                      {line.clubName} ·{" "}
+                      {nightFmt.format(new Date(`${line.nightDate}T12:00:00`))}
+                    </span>
                   </span>
-                </span>
-                <span className="tnum font-medium">
-                  {formatPaise(line.currentPrice * line.quantity)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
+                  <span className="tnum font-medium">
+                    {formatPaise(line.currentPrice * line.quantity)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
 
-        <section>
-          <h2 className="font-display text-lg font-semibold">
-            2 · Lead guest
-          </h2>
-          <p className="mt-1 text-xs text-moon-dim">
-            The QR ticket and receipts go to these details. ID is checked at
-            the door.
-          </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            <label className="block text-sm">
-              <span className="mb-1 block text-moon-dim">Full name</span>
-              <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
-            </label>
-            <label className="block text-sm">
-              <span className="mb-1 block text-moon-dim">Phone</span>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" autoComplete="tel" />
-            </label>
-            <label className="block text-sm">
-              <span className="mb-1 block text-moon-dim">Email</span>
-              <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoComplete="email" />
-            </label>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="font-display text-lg font-semibold">3 · Offers</h2>
-          <div className="mt-3 flex max-w-sm gap-2">
-            <Input
-              placeholder="Coupon code"
-              value={couponInput}
-              onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-              aria-label="Coupon code"
-            />
-            <Button
-              variant="secondary"
-              disabled={busy !== null || !couponInput}
-              onClick={applyCoupon}
-            >
-              {busy === "coupon" ? "Checking…" : "Apply"}
-            </Button>
-          </div>
-          {couponMessage && (
-            <p
-              className={
-                "mt-2 text-sm " +
-                (totals.discount > 0 ? "text-drop" : "text-danger")
-              }
-            >
-              {couponMessage}
+          <section>
+            <h2 className="font-display text-lg font-semibold">
+              2 · Lead guest
+            </h2>
+            <p className="mt-1 text-xs text-moon-dim">
+              The QR ticket and receipts go to these details. ID is checked at
+              the door.
             </p>
-          )}
-          {walletBalance > 0 && (
-            <label className="mt-4 flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={useWallet}
-                onChange={(e) => toggleWallet(e.target.checked)}
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <label className="block text-sm">
+                <span className="mb-1 block text-moon-dim">Full name</span>
+                <Input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-moon-dim">Phone</span>
+                <Input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" autoComplete="tel" />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-moon-dim">Email</span>
+                <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoComplete="email" />
+              </label>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="font-display text-lg font-semibold">3 · Offers</h2>
+            <div className="mt-3 flex max-w-sm gap-2">
+              <Input
+                placeholder="Coupon code"
+                value={couponInput}
+                onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                aria-label="Coupon code"
               />
-              Use wallet credit ({formatPaise(walletBalance)} available)
-            </label>
-          )}
-        </section>
+              <Button
+                variant="secondary"
+                disabled={busy !== null || !couponInput}
+                onClick={applyCoupon}
+              >
+                {busy === "coupon" ? "Checking…" : "Apply"}
+              </Button>
+            </div>
+            {couponMessage && (
+              <p
+                className={
+                  "mt-2 text-sm " +
+                  (totals.discount > 0 ? "text-drop" : "text-danger")
+                }
+              >
+                {couponMessage}
+              </p>
+            )}
+            {walletBalance > 0 && (
+              <label className="mt-4 flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={useWallet}
+                  disabled={busy !== null}
+                  onChange={(e) => toggleWallet(e.target.checked)}
+                />
+                Use wallet credit ({formatPaise(walletBalance)} available)
+              </label>
+            )}
+          </section>
+        </fieldset>
       </div>
 
       <aside>
@@ -220,6 +236,7 @@ export function CheckoutClient({
             <input
               type="checkbox"
               checked={agreed}
+              disabled={busy === "pay" || choosePayment}
               onChange={(e) => setAgreed(e.target.checked)}
               className="mt-0.5"
             />
@@ -242,17 +259,47 @@ export function CheckoutClient({
             </p>
           )}
 
-          <Button
-            className="mt-4 w-full"
-            size="lg"
-            disabled={busy !== null || !agreed}
-            onClick={pay}
-          >
-            {busy === "pay" ? "Locking your price…" : `Pay ${formatPaise(totals.total)}`}
-          </Button>
-          <p className="mt-2 text-center text-xs text-night/60">
-            Your price locks for 10 minutes once you continue.
-          </p>
+          {choosePayment ? (
+            <fieldset disabled={busy !== null} className="mt-4 space-y-2 border-t border-night/20 pt-4">
+              <legend className="sr-only">Payment method</legend>
+              <h3 className="font-display font-semibold">Choose how to pay</h3>
+              <Button className="w-full" disabled={useWallet} onClick={() => pay("venue")}>
+                Pay at the venue
+              </Button>
+              <p className="text-xs text-night/70">
+                {useWallet
+                  ? "Edit your details to turn off wallet credit for venue payment."
+                  : "Reserve now, get your QR ticket and pay when you arrive."}
+              </p>
+              <Button className="w-full" variant="secondary" onClick={() => pay("online")}>
+                Pay online · {formatPaise(totals.total)}
+              </Button>
+              <button
+                type="button"
+                className="text-sm underline underline-offset-4"
+                onClick={() => { setChoosePayment(false); setError(null); }}
+              >
+                Edit checkout details
+              </button>
+              {busy === "pay" && <p role="status" className="text-sm">Confirming your checkout…</p>}
+            </fieldset>
+          ) : (
+            <Button
+              className="mt-4 w-full"
+              size="lg"
+              disabled={busy !== null || !agreed}
+              onClick={() => {
+                setError(null);
+                if (!name.trim() || !phone.trim() || !email.trim()) {
+                  setError("Enter the lead guest's name, phone and email.");
+                  return;
+                }
+                setChoosePayment(true);
+              }}
+            >
+              Proceed to checkout
+            </Button>
+          )}
         </div>
       </aside>
     </div>

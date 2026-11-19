@@ -1,31 +1,37 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Header } from "@/components/shell/header";
-import { getCities, getPriceBoard } from "@/lib/data/catalog";
+import { getCities, listClubs } from "@/lib/data/catalog";
 import { ClubMapLazy } from "@/components/map/club-map-lazy";
 import { CITY_COOKIE, DEFAULT_CITY } from "@/lib/cities";
 
 export const metadata: Metadata = {
   title: "Map",
-  description: "Every club on the map with tonight's lowest live price.",
+  description: "Find club locations and directions, with live entry prices.",
 };
 
-export default async function MapPage() {
+export default async function MapPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ city?: string }>;
+}) {
+  const { city: requestedCity } = await searchParams;
   const cookieStore = await cookies();
   const cities = await getCities();
   const city =
+    cities.find((c) => c.slug === requestedCity)?.slug ??
     cities.find((c) => c.slug === cookieStore.get(CITY_COOKIE)?.value)?.slug ??
     cities[0]?.slug ??
     DEFAULT_CITY;
   const cityInfo = cities.find((c) => c.slug === city)!;
-  const board = await getPriceBoard(city);
+  const clubs = await listClubs({ city });
 
-  const pins = board
+  const pins = clubs
     .filter((b) => b.lat !== null && b.lng !== null)
     .map((b) => ({
-      id: b.clubId,
-      slug: b.clubSlug,
-      name: b.clubName,
+      id: b.id,
+      slug: b.slug,
+      name: b.name,
       citySlug: city,
       lat: b.lat!,
       lng: b.lng!,
@@ -43,7 +49,7 @@ export default async function MapPage() {
           pins={pins}
           center={[cityInfo.lat, cityInfo.lng]}
           zoom={12}
-          height="calc(100vh - 180px)"
+          height="clamp(320px, calc(100dvh - 200px), 730px)"
         />
       </main>
     </>

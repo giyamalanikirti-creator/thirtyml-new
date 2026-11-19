@@ -1,0 +1,61 @@
+.marker::before {
+  position: absolute;
+  inset: 2px 3px 4px;
+  content: "";
+  transform: rotate(-45deg);
+  border: 2px solid #fff;
+  border-radius: 50% 50% 50% 5px;
+  background: #6332b5;
+  box-shadow: 0 2px 8px #23134066;
+}
+
+.marker::after {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  width: 6px;
+  height: 6px;
+  content: "";
+  border-radius: 50%;
+  background: #fff;
+}
+
+.map :global(.leaflet-popup-content-wrapper) {
+  border-radius: 12px;
+}
+
+.popup {
+  display: grid;
+  min-width: 150px;
+  gap: 4px;
+  color: #272137;
+}
+
+.popup + .popup {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e6dfed;
+}
+
+.popup strong {
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.popup span {
+  color: #554b65;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-top: 6px;
+}
+
+.map .actions a {
+  color: #542793;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

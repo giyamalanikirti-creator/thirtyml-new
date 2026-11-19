@@ -54,7 +54,7 @@ export async function quoteCancellation(
     .from("bookings")
     .select(
       `id, user_id, status, night_date, club_id, order_id,
-       clubs(cancellation_policy, booking_cutoff_minutes)`
+       clubs(cancellation_policy, booking_cutoff_minutes), orders(status)`
     )
     .eq("id", bookingId)
     .single();
@@ -78,6 +78,15 @@ export async function quoteCancellation(
 
   const hoursLeft =
     (nightStart(booking.night_date).getTime() - Date.now()) / 3600000;
+
+  if (booking.orders?.status === "venue_due") {
+    return {
+      cancellable: hoursLeft > 0,
+      reason: hoursLeft > 0 ? "Payment was due at the venue." : "The night has already started",
+      refundPaise: 0,
+      itemised: [],
+    };
+  }
 
   let refund = 0;
   const itemised: { name: string; paise: number }[] = [];
@@ -236,7 +245,7 @@ export async function cancelNight(params: {
   const admin = supabaseAdmin();
   const { data: bookings } = await admin
     .from("bookings")
-    .select("id, order_id, user_id, orders(total), clubs(name)")
+    .select("id, order_id, user_id, orders(status), clubs(name)")
     .eq("club_id", params.clubId)
     .eq("night_date", params.nightDate)
     .eq("status", "confirmed");
@@ -272,7 +281,8 @@ export async function cancelNight(params: {
       (sum, item) => sum + item.unit_price * item.quantity,
       0
     );
-    if (amount > 0) {
+    const payAtVenue = booking.orders?.status === "venue_due";
+    if (amount > 0 && !payAtVenue) {
       const { data: payment } = await admin
         .from("payments")
         .select("id, razorpay_payment_id")
@@ -309,15 +319,19 @@ export async function cancelNight(params: {
       userId: booking.user_id,
       category: "night_cancelled",
       channel: "in_app",
-      title: "Night cancelled — full refund on its way",
-      body: `${booking.clubs?.name ?? "The club"} cancelled ${params.nightDate}. Your full payment is being refunded to your original method.`,
+      title: payAtVenue ? "Night cancelled" : "Night cancelled — full refund on its way",
+      body: `${booking.clubs?.name ?? "The club"} cancelled ${params.nightDate}. ${payAtVenue
+        ? "No payment is due."
+        : "Your full payment is being refunded to your original method."}`,
     });
     await queueNotification({
       userId: booking.user_id,
       category: "night_cancelled",
       channel: "email",
-      title: "Night cancelled — full refund on its way",
-      body: `${booking.clubs?.name ?? "The club"} cancelled ${params.nightDate}. Your full payment is being refunded.`,
+      title: payAtVenue ? "Night cancelled" : "Night cancelled — full refund on its way",
+      body: `${booking.clubs?.name ?? "The club"} cancelled ${params.nightDate}. ${payAtVenue
+        ? "No payment is due."
+        : "Your full payment is being refunded."}`,
     });
     refunded += 1;
   }

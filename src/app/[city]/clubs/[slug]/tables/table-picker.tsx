@@ -58,7 +58,7 @@ export function TablePicker({ data }: { data: TablePickerData }) {
       setError(body?.error ?? "Couldn't add the table to cart");
       return;
     }
-    router.push("/cart");
+    router.push("/checkout");
   }
 
   return (

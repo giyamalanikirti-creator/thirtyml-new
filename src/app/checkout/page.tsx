@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Header } from "@/components/shell/header";
@@ -27,9 +28,11 @@ export default async function CheckoutPage() {
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
         <h1 className="font-display text-2xl font-semibold">Checkout</h1>
         <p className="mt-1 text-sm text-moon-dim">
-          Review, add your details, pay. Prices lock for 10 minutes the moment
-          you continue to payment.
+          Review your tickets and guest details before choosing how to pay.
         </p>
+        <Link href="/cart" className="mt-2 inline-block text-sm text-plum-bright underline underline-offset-4">
+          Edit cart
+        </Link>
         <div className="mt-6">
           <CheckoutClient
             view={view}

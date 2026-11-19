@@ -260,3 +260,57 @@ end;
 $$;
 
 drop function test_login(uuid);
+
+-- Venue confirmation is atomic, idempotent, and holds capacity until cancellation.
+begin;
+do $$
+declare
+  uid uuid := '10000000-0000-4000-8000-000000000001';
+  d date := current_date + 21;
+  product record;
+  cart uuid;
+  line uuid;
+  ord uuid;
+  avail int;
+  snapshot jsonb;
+begin
+  select * into product from public.products where capacity_per_night >= 2 and type = 'entry' limit 1;
+  avail := public.available_quantity(product.id, d);
+  insert into public.carts(user_id) values (uid) returning id into cart;
+  insert into public.cart_items(cart_id, product_id, quantity, night_date, price_when_added)
+    values (cart, product.id, 1, d, 10000) returning id into line;
+  insert into public.orders(user_id, subtotal, total, idempotency_key, hold_expires_at, lead_guest_name, lead_guest_email, payment_method)
+    values(uid, 10000, 10000, 'venue-test', now() + interval '10 minutes', 'Test Guest', 'guest@example.com', 'venue') returning id into ord;
+  insert into public.order_items(order_id, product_id, night_date, quantity, unit_price, product_name, product_type, club_id)
+    values(ord, product.id, d, 1, 10000, 'Couple entry', 'entry', product.club_id);
+  perform public.place_hold(product.id, d, 1, ord);
+  snapshot := jsonb_build_array(jsonb_build_object('id', line, 'quantity', 1));
+
+  begin
+    perform public.confirm_venue_order(ord, uid, jsonb_build_array(jsonb_build_object('id', line, 'quantity', 2)), 'https://thirtyml.in');
+    raise exception 'stale cart accepted';
+  exception when raise_exception then
+    if sqlerrm <> 'cart_changed' then raise; end if;
+  end;
+
+  perform public.confirm_venue_order(ord, uid, snapshot, 'https://thirtyml.in');
+  perform public.confirm_venue_order(ord, uid, snapshot, 'https://thirtyml.in');
+  if (select status from public.orders where id = ord) <> 'venue_due'
+    or exists (select 1 from public.payments where order_id = ord)
+    or exists (select 1 from public.inventory_holds where order_id = ord)
+    or exists (select 1 from public.cart_items where id = line)
+    or (select count(*) from public.tickets t join public.bookings b on t.booking_id = b.id
+        where b.order_id = ord and b.status = 'confirmed' and t.guests_total = 2
+          and t.qr_token ~ '^[A-Za-z0-9_-]{32}$') <> 1
+    or (select count(*) from public.notifications where payload->>'order_id' = ord::text) <> 2
+    or not exists (select 1 from public.notifications where payload->>'order_id' = ord::text
+        and payload->>'recipient' = 'guest@example.com' and body like '%https://thirtyml.in/bookings/%')
+    or public.available_quantity(product.id, d) <> avail - 1
+  then raise exception 'venue checkout assertions failed'; end if;
+
+  update public.bookings set status = 'cancelled' where order_id = ord;
+  if public.available_quantity(product.id, d) <> avail
+    then raise exception 'cancellation did not release inventory'; end if;
+end;
+$$;
+rollback;

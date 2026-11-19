@@ -1500,6 +1500,7 @@ export type Database = {
           lead_guest_email: string | null
           lead_guest_name: string | null
           lead_guest_phone: string | null
+          payment_method: string
           status: string
           subtotal: number
           tax: number
@@ -1519,6 +1520,7 @@ export type Database = {
           lead_guest_email?: string | null
           lead_guest_name?: string | null
           lead_guest_phone?: string | null
+          payment_method?: string
           status?: string
           subtotal: number
           tax?: number
@@ -1538,6 +1540,7 @@ export type Database = {
           lead_guest_email?: string | null
           lead_guest_name?: string | null
           lead_guest_phone?: string | null
+          payment_method?: string
           status?: string
           subtotal?: number
           tax?: number
@@ -2675,6 +2678,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      confirm_venue_order: {
+        Args: {
+          p_order_id: string
+          p_user_id: string
+          p_cart_lines: Json
+          p_site_url: string
+        }
+        Returns: undefined
+      }
       apply_due_price_rules: {
         Args: Record<PropertyKey, never>
         Returns: number
