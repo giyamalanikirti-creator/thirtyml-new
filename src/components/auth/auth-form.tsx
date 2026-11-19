@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { requestDemoCode, verifyDemoCode } from "@/app/demo-account/actions";
 import { supabaseBrowser, supabaseConfigured } from "@/lib/supabase/client";
 import {
   emailSchema,
@@ -23,12 +24,13 @@ export function AuthForm({
   mode: Mode;
   partner?: boolean;
 }) {
+  const demo = !supabaseConfigured() && !partner;
   const router = useRouter();
   const params = useSearchParams();
   const requestedPath = params.get("next");
   const next = requestedPath?.startsWith("/") && !/^[/][\/\\]/.test(requestedPath)
     ? requestedPath
-    : partner ? "/partner" : mode === "login" ? "/clubs" : "/";
+    : partner ? "/partner" : demo || mode === "login" ? "/clubs" : "/";
 
   const [method, setMethod] = React.useState<Method>(
     partner ? "email" : "phone"
@@ -42,7 +44,7 @@ export function AuthForm({
   const [error, setError] = React.useState<string | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
 
-  if (!supabaseConfigured()) {
+  if (!demo && !supabaseConfigured()) {
     return (
       <p className="rounded-md border border-line bg-night-raised p-4 text-sm text-moon-dim">
         Sign-in isn&apos;t configured in this environment yet (Supabase keys
@@ -52,12 +54,13 @@ export function AuthForm({
     );
   }
 
-  const supabase = supabaseBrowser();
+  const contact = { method, contact: method === "phone" ? phone : email };
+  const usesCode = method === "phone" || demo;
 
   async function run(fn: () => Promise<string | null>) {
     setBusy(true);
     setError(null);
-    setNotice(null);
+    if (!demo || !otpSent) setNotice(null);
     try {
       const failure = await fn();
       if (failure) setError(failure);
@@ -69,9 +72,16 @@ export function AuthForm({
   }
 
   async function sendOtp() {
+    if (demo) {
+      const result = await requestDemoCode(contact);
+      if ("error" in result) return result.error ?? null;
+      setOtpSent(true);
+      setNotice(`Your demo code is ${result.code}.`);
+      return null;
+    }
     const parsed = phoneSchema.safeParse(phone);
     if (!parsed.success) return parsed.error.issues[0].message;
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabaseBrowser().auth.signInWithOtp({
       phone: parsed.data,
     });
     if (error) return error.message;
@@ -81,11 +91,18 @@ export function AuthForm({
   }
 
   async function verifyOtp() {
+    if (demo) {
+      const result = await verifyDemoCode(contact, otp);
+      if ("error" in result) return result.error ?? null;
+      router.replace(next);
+      router.refresh();
+      return null;
+    }
     const parsedPhone = phoneSchema.safeParse(phone);
     const parsedOtp = otpSchema.safeParse(otp);
     if (!parsedPhone.success) return parsedPhone.error.issues[0].message;
     if (!parsedOtp.success) return parsedOtp.error.issues[0].message;
-    const { error } = await supabase.auth.verifyOtp({
+    const { error } = await supabaseBrowser().auth.verifyOtp({
       phone: parsedPhone.data,
       token: parsedOtp.data,
       type: "sms",
@@ -104,12 +121,12 @@ export function AuthForm({
 
     const { error } =
       mode === "signup"
-        ? await supabase.auth.signUp({
+        ? await supabaseBrowser().auth.signUp({
             email: parsedEmail.data,
             password: parsedPassword.data,
             options: { emailRedirectTo: `${location.origin}/auth/callback` },
           })
-        : await supabase.auth.signInWithPassword({
+        : await supabaseBrowser().auth.signInWithPassword({
             email: parsedEmail.data,
             password: parsedPassword.data,
           });
@@ -126,7 +143,7 @@ export function AuthForm({
   async function magicLink() {
     const parsedEmail = emailSchema.safeParse(email);
     if (!parsedEmail.success) return parsedEmail.error.issues[0].message;
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabaseBrowser().auth.signInWithOtp({
       email: parsedEmail.data,
       options: { emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
     });
@@ -136,7 +153,7 @@ export function AuthForm({
   }
 
   async function google() {
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { error } = await supabaseBrowser().auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
@@ -148,8 +165,13 @@ export function AuthForm({
 
   return (
     <div className="w-full max-w-sm">
+      {demo && (
+        <p className="mb-4 rounded-md border border-line bg-night-raised p-3 text-sm text-moon-dim">
+          Demo mode. Use a sample phone number or email address. The code appears here in the app.
+        </p>
+      )}
       <div
-        className="mb-5 grid grid-cols-3 rounded-md border border-line p-1 text-sm"
+        className={`mb-5 grid ${demo ? "grid-cols-2" : "grid-cols-3"} rounded-md border border-line p-1 text-sm`}
         role="tablist"
         aria-label="Sign-in method"
       >
@@ -159,10 +181,11 @@ export function AuthForm({
             ["email", "Email"],
             ["magic", "Magic link"],
           ] as const
-        ).map(([value, label]) => (
+        ).filter(([value]) => !demo || value !== "magic").map(([value, label]) => (
           <button
             key={value}
             role="tab"
+            disabled={busy}
             aria-selected={method === value}
             className={
               "rounded-sm py-1.5 " +
@@ -172,6 +195,8 @@ export function AuthForm({
             }
             onClick={() => {
               setMethod(value);
+              setOtpSent(false);
+              setOtp("");
               setError(null);
               setNotice(null);
             }}
@@ -185,7 +210,7 @@ export function AuthForm({
         className="space-y-3"
         onSubmit={(e) => {
           e.preventDefault();
-          if (method === "phone") run(otpSent ? verifyOtp : sendOtp);
+          if (usesCode) run(otpSent ? verifyOtp : sendOtp);
           else if (method === "email") run(emailPassword);
           else run(magicLink);
         }}
@@ -201,21 +226,10 @@ export function AuthForm({
                 placeholder="98765 43210"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                disabled={otpSent}
+                disabled={otpSent || busy}
               />
             </label>
-            {otpSent && (
-              <label className="block text-sm">
-                <span className="mb-1 block text-moon-dim">6-digit code</span>
-                <Input
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  maxLength={6}
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                />
-              </label>
-            )}
+
           </>
         )}
 
@@ -225,13 +239,15 @@ export function AuthForm({
             <Input
               type="email"
               autoComplete="email"
+              placeholder={demo ? "guest@example.com" : undefined}
+              disabled={demo && (otpSent || busy)}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </label>
         )}
 
-        {method === "email" && (
+        {method === "email" && !demo && (
           <label className="block text-sm">
             <span className="mb-1 block text-moon-dim">Password</span>
             <Input
@@ -239,6 +255,19 @@ export function AuthForm({
               autoComplete={mode === "signup" ? "new-password" : "current-password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+            />
+          </label>
+        )}
+
+        {usesCode && otpSent && (
+          <label className="block text-sm">
+            <span className="mb-1 block text-moon-dim">6-digit code</span>
+            <Input
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
             />
           </label>
         )}
@@ -253,7 +282,7 @@ export function AuthForm({
         <Button type="submit" className="w-full" disabled={busy}>
           {busy
             ? "Please wait…"
-            : method === "phone"
+            : usesCode
               ? otpSent
                 ? "Verify code"
                 : "Send code"
@@ -265,37 +294,52 @@ export function AuthForm({
         </Button>
       </form>
 
-      <div className="my-4 flex items-center gap-3 text-xs text-moon-dim">
-        <span className="h-px flex-1 bg-line" /> or{" "}
-        <span className="h-px flex-1 bg-line" />
-      </div>
+      {demo && otpSent && (
+        <button
+          type="button"
+          className="mt-3 text-sm text-plum-bright underline"
+          disabled={busy}
+          onClick={() => { setOtpSent(false); setOtp(""); setNotice(null); setError(null); }}
+        >
+          Change {method === "phone" ? "number" : "email"}
+        </button>
+      )}
 
-      <Button
-        variant="secondary"
-        className="w-full"
-        disabled={busy}
-        onClick={() => run(google)}
-      >
-        Continue with Google
-      </Button>
+      {!demo && (
+        <>
+          <div className="my-4 flex items-center gap-3 text-xs text-moon-dim">
+            <span className="h-px flex-1 bg-line" /> or{" "}
+            <span className="h-px flex-1 bg-line" />
+          </div>
+
+          <Button
+            variant="secondary"
+            className="w-full"
+            disabled={busy}
+            onClick={() => run(google)}
+          >
+            Continue with Google
+          </Button>
+        </>
+      )}
 
       <p className="mt-5 text-center text-sm text-moon-dim">
         {mode === "login" ? (
           <>
             New here?{" "}
-            <Link className="text-dusk hover:underline" href="/signup">
+            <Link className="text-dusk hover:underline" href={requestedPath === next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}>
               Create an account
             </Link>
           </>
         ) : (
           <>
             Already have an account?{" "}
-            <Link className="text-dusk hover:underline" href="/login">
+            <Link className="text-dusk hover:underline" href={requestedPath === next ? `/login?next=${encodeURIComponent(next)}` : "/login"}>
               Sign in
             </Link>
           </>
         )}
-        {method === "email" && mode === "login" && (
+        {!demo && method === "email" && mode === "login" && (
           <>
             {" · "}
             <Link className="text-dusk hover:underline" href="/reset-password">
